@@ -1,4 +1,5 @@
---- employee ---
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS "employee"
 (
     "id" bigint GENERATED ALWAYS AS IDENTITY,
@@ -8,7 +9,6 @@ CREATE TABLE IF NOT EXISTS "employee"
 	primary key ("id")
 );
 
---- role ---
 CREATE TABLE IF NOT EXISTS "role"
 (
     "id" bigint GENERATED ALWAYS AS IDENTITY,
@@ -17,3 +17,10 @@ CREATE TABLE IF NOT EXISTS "role"
     "updated_at" timestamptz,
 	primary key ("id")
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE "employee";
+DROP TABLE "role";
+-- +goose StatementEnd
