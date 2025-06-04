@@ -18,7 +18,7 @@ func GetConfig(envFile string) Config {
 	err := godotenv.Load(envFile)
 
 	if err != nil {
-		fmt.Printf("Warning: Could not load .env file: %v", err)
+		fmt.Printf("warning: Could not load .env file: %v\n", err)
 	}
 
 	cfg := Config{
