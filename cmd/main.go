@@ -14,7 +14,11 @@ type DataMigration struct {
 }
 
 func main() {
-	db := database.ConnectDb()
+	db, err := database.ConnectDb(".env")
+	if err != nil {
+		panic(fmt.Errorf("failed open connect Db: %v", err))
+	}
+
 	defer db.Close()
 
 	fmt.Println("**************************")
@@ -23,7 +27,7 @@ func main() {
 
 	var dataMigration DataMigration
 
-	err := db.Get(&dataMigration, "SELECT * FROM goose_db_version WHERE id = $1", 4)
+	err = db.Get(&dataMigration, "SELECT * FROM goose_db_version WHERE version_id = $1", 20250603224245)
 
 	if err != nil {
 		panic(fmt.Errorf("failed to query database: %v", err))

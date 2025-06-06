@@ -14,11 +14,11 @@ type Config struct {
 }
 
 // GetConfig получение конфигурации из .env файла или переменных окружения
-func GetConfig(envFile string) Config {
+func GetConfig(envFile string) (Config, error) {
 	err := godotenv.Load(envFile)
 
 	if err != nil {
-		fmt.Printf("warning: Could not load .env file: %v\n", err)
+		return Config{}, fmt.Errorf("warning: Could not load .env file: %v\n", err)
 	}
 
 	cfg := Config{
@@ -27,8 +27,8 @@ func GetConfig(envFile string) Config {
 	}
 
 	if cfg.DbDriverName == "" || cfg.Dsn == "" {
-		panic("DB_DRIVER_NAME and DB_DSN must be set in .env file or environment variables")
+		return Config{}, fmt.Errorf("DB_DRIVER_NAME and DB_DSN must be set in .env file or environment variables")
 	}
 
-	return cfg
+	return cfg, nil
 }
