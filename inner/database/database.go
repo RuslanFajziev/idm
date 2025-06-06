@@ -9,9 +9,13 @@ import (
 )
 
 // ConnectDb получить конфиг и подключиться с ним к базе данных
-func ConnectDb() *sqlx.DB {
-	cfg := common.GetConfig(".env")
-	return ConnectDbWithCfg(cfg)
+func ConnectDb() (*sqlx.DB, error) {
+	cfg, err := common.GetConfig(".env")
+	if err != nil {
+		return nil, err
+	}
+
+	return ConnectDbWithCfg(cfg), nil
 }
 
 // ConnectDbWithCfg подключиться к базе данных с переданным конфигом
