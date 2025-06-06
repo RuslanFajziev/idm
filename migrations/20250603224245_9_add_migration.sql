@@ -12,12 +12,10 @@ CREATE TABLE IF NOT EXISTS "employee"
 
 CREATE TABLE IF NOT EXISTS "role"
 (
-    "id" bigint GENERATED ALWAYS AS IDENTITY,
-    "name" text not null,
+    "id" bigint primary key GENERATED ALWAYS AS IDENTITY,
+    "name" text not null unique,
     "create_at" timestamptz DEFAULT now(),
-    "update_at" timestamptz DEFAULT now(),
-
-    CONSTRAINT "pk_role_name" PRIMARY KEY ("name")
+    "update_at" timestamptz DEFAULT now()
 );
 -- +goose StatementEnd
 
