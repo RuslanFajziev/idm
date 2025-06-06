@@ -4,18 +4,18 @@ CREATE TABLE IF NOT EXISTS "employee"
 (
     "id" bigint GENERATED ALWAYS AS IDENTITY,
     "name" text not null,
-    "create_at" timestamptz not null,
-    "updated_at" timestamptz,
-	primary key ("id")
+    "create_at" timestamptz DEFAULT now(),
+    "update_at" timestamptz DEFAULT now(),
+
+    primary key ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "role"
 (
-    "id" bigint GENERATED ALWAYS AS IDENTITY,
-    "name" text not null,
-    "create_at" timestamptz not null,
-    "updated_at" timestamptz,
-	primary key ("id")
+    "id" bigint primary key GENERATED ALWAYS AS IDENTITY,
+    "name" text not null unique,
+    "create_at" timestamptz DEFAULT now(),
+    "update_at" timestamptz DEFAULT now()
 );
 -- +goose StatementEnd
 
