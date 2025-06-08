@@ -22,28 +22,25 @@ func NewEmployeeRepository(database *sqlx.DB) *EmployeeRepository {
 	return &EmployeeRepository{db: database}
 }
 
-func (rep *EmployeeRepository) AddEmployee(entity EmployeeEntity) error {
-	query := "INSERT INTO employee (name) VALUES ($1)"
-	_, err := rep.db.Exec(query, entity.Name)
-	return err
+func (rep *EmployeeRepository) AddEmployee(entity EmployeeEntity) (employeeId int64, err error) {
+	query := "INSERT INTO employee (name) VALUES ($1) RETURN id"
+	err = rep.db.Get(&employeeId, query, entity.Name)
+	return employeeId, err
 }
 
-func (rep *EmployeeRepository) FindById(id int64) (EmployeeEntity, error) {
+func (rep *EmployeeRepository) FindById(id int64) (entity EmployeeEntity, err error) {
 	query := "SELECT * FROM employee WHERE id = $1"
-	var entity EmployeeEntity
-	err := rep.db.Get(&entity, query, id)
+	err = rep.db.Get(&entity, query, id)
 	return entity, err
 }
 
-func (rep *EmployeeRepository) GetAllEmployees() ([]EmployeeEntity, error) {
+func (rep *EmployeeRepository) GetAllEmployees() (entities []EmployeeEntity, err error) {
 	query := "SELECT * FROM employee"
-	var entities []EmployeeEntity
-	err := rep.db.Select(&entities, query)
+	err = rep.db.Select(&entities, query)
 	return entities, err
 }
 
-func (rep *EmployeeRepository) FindEmployeesByIds(ids []int64) ([]EmployeeEntity, error) {
-	var entities []EmployeeEntity
+func (rep *EmployeeRepository) FindEmployeesByIds(ids []int64) (entities []EmployeeEntity, err error) {
 	for _, value := range ids {
 		ent, err := rep.FindById(value)
 		if err != nil {
