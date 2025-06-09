@@ -22,7 +22,7 @@ func NewEmployeeRepository(database *sqlx.DB) *EmployeeRepository {
 	return &EmployeeRepository{db: database}
 }
 
-func (rep *EmployeeRepository) AddEmployee(entity EmployeeEntity) (employeeId int64, err error) {
+func (rep *EmployeeRepository) SaveEmployee(entity EmployeeEntity) (employeeId int64, err error) {
 	query := "INSERT INTO employee (name) VALUES ($1) RETURN id"
 	err = rep.db.Get(&employeeId, query, entity.Name)
 	return employeeId, err
@@ -41,14 +41,16 @@ func (rep *EmployeeRepository) GetAllEmployees() (entities []EmployeeEntity, err
 }
 
 func (rep *EmployeeRepository) FindEmployeesByIds(ids []int64) (entities []EmployeeEntity, err error) {
-	for _, value := range ids {
-		ent, err := rep.FindById(value)
-		if err != nil {
-			return entities, err
-		}
-		entities = append(entities, ent)
+	query := "SELECT * FROM employee WHERE id IN (?)"
+	query, args, err := sqlx.In(query, ids)
+
+	if err != nil {
+		return nil, err
 	}
-	return entities, nil
+
+	query = sqlx.Rebind(0, query)
+	err = rep.db.Select(&entities, query, args...)
+	return entities, err
 }
 
 func (rep *EmployeeRepository) DeleteEmployeeById(id int64) error {
@@ -58,11 +60,14 @@ func (rep *EmployeeRepository) DeleteEmployeeById(id int64) error {
 }
 
 func (rep *EmployeeRepository) DeleteEmployeeByIds(ids []int64) error {
-	for _, value := range ids {
-		err := rep.DeleteEmployeeById(value)
-		if err != nil {
-			return err
-		}
+	query := "DELETE FROM employee WHERE id IN (?)"
+	query, args, err := sqlx.In(query, ids)
+
+	if err != nil {
+		return err
 	}
-	return nil
+
+	query = sqlx.Rebind(0, query)
+	_, err = rep.db.Exec(query, args...)
+	return err
 }

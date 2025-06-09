@@ -41,14 +41,16 @@ func (rep *RoleRepository) GetAllRoles() (entities []RoleEntity, err error) {
 }
 
 func (rep *RoleRepository) FindRolesByIds(ids []int64) (entities []RoleEntity, err error) {
-	for _, value := range ids {
-		ent, err := rep.FindById(value)
-		if err != nil {
-			return entities, err
-		}
-		entities = append(entities, ent)
+	query := "SELECT * FROM ROLE WHERE id IN (?)"
+	query, args, err := sqlx.In(query, ids)
+
+	if err != nil {
+		return nil, err
 	}
-	return entities, nil
+
+	query = sqlx.Rebind(0, query)
+	err = rep.db.Select(&entities, query, args...)
+	return entities, err
 }
 
 func (rep *RoleRepository) DeleteRoleById(id int64) error {
@@ -58,11 +60,14 @@ func (rep *RoleRepository) DeleteRoleById(id int64) error {
 }
 
 func (rep *RoleRepository) DeleteRoleByIds(ids []int64) error {
-	for _, value := range ids {
-		err := rep.DeleteRoleById(value)
-		if err != nil {
-			return err
-		}
+	query := "DELETE FROM role WHERE id IN (?)"
+	query, args, err := sqlx.In(query, ids)
+
+	if err != nil {
+		return err
 	}
-	return nil
+
+	query = sqlx.Rebind(0, query)
+	_, err = rep.db.Exec(query, args...)
+	return err
 }
