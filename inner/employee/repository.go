@@ -22,7 +22,7 @@ func NewEmployeeRepository(database *sqlx.DB) *EmployeeRepository {
 	return &EmployeeRepository{db: database}
 }
 
-func (rep *EmployeeRepository) Save(entity EmployeeEntity) (employeeId int64, err error) {
+func (rep *EmployeeRepository) Save(entity *EmployeeEntity) (employeeId int64, err error) {
 	query := "INSERT INTO employee (name) VALUES ($1) RETURNING id"
 	err = rep.db.Get(&employeeId, query, entity.Name)
 	return employeeId, err
@@ -48,7 +48,7 @@ func (rep *EmployeeRepository) FindByIds(ids []int64) (entities []EmployeeEntity
 		return nil, err
 	}
 
-	query = sqlx.Rebind(0, query)
+	query = sqlx.Rebind(2, query)
 	err = rep.db.Select(&entities, query, args...)
 	return entities, err
 }
@@ -67,7 +67,7 @@ func (rep *EmployeeRepository) DeleteByIds(ids []int64) error {
 		return err
 	}
 
-	query = sqlx.Rebind(0, query)
+	query = sqlx.Rebind(2, query)
 	_, err = rep.db.Exec(query, args...)
 	return err
 }

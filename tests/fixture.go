@@ -2,6 +2,7 @@ package tests
 
 import (
 	"idm/inner/database"
+	"idm/inner/employee"
 	"idm/inner/role"
 	"os"
 )
@@ -13,19 +14,38 @@ func ClearEnv() {
 	os.Unsetenv(dsnName)
 }
 
-type Fixture struct {
+type FixtureRole struct {
 	roles *role.RoleRepository
 }
 
-func NewFixture(roles *role.RoleRepository) *Fixture {
-	return &Fixture{roles}
+type FixtureEmployee struct {
+	employee *employee.EmployeeRepository
 }
 
-func (f *Fixture) Role(name string) int64 {
+func NewFixtureRole(roles *role.RoleRepository) *FixtureRole {
+	return &FixtureRole{roles}
+}
+
+func NewFixtureEmployee(employee *employee.EmployeeRepository) *FixtureEmployee {
+	return &FixtureEmployee{employee}
+}
+
+func (f *FixtureRole) Role(name string) int64 {
 	var entity = role.RoleEntity{
 		Name: name,
 	}
 	newId, err := f.roles.Save(&entity)
+	if err != nil {
+		panic(err)
+	}
+	return newId
+}
+
+func (f *FixtureEmployee) Employee(name string) int64 {
+	var entity = employee.EmployeeEntity{
+		Name: name,
+	}
+	newId, err := f.employee.Save(&entity)
 	if err != nil {
 		panic(err)
 	}

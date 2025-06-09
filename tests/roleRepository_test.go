@@ -27,15 +27,15 @@ func TestRepositoryСase1(t *testing.T) {
 		}
 	}()
 
-	var roleRepository = role.NewRoleRepository(db)
-	var fixture = NewFixture(roleRepository)
+	var repository = role.NewRoleRepository(db)
+	var fixture = NewFixtureRole(repository)
 
 	var testName = "test name"
 
 	t.Run("Check FindById DeleteById GetAll", func(t *testing.T) {
 		var newRoleId = fixture.Role(testName)
 
-		entity, err := roleRepository.FindById(newRoleId)
+		entity, err := repository.FindById(newRoleId)
 
 		a.Nil(err)
 		a.NotEmpty(entity)
@@ -44,9 +44,9 @@ func TestRepositoryСase1(t *testing.T) {
 		a.NotEmpty(entity.Update)
 		a.Equal(testName, entity.Name)
 
-		err = roleRepository.DeleteById(entity.Id)
+		err = repository.DeleteById(entity.Id)
 		a.Nil(err)
-		entities, err := roleRepository.GetAll()
+		entities, err := repository.GetAll()
 		a.Nil(err)
 		a.Equal(0, len(entities))
 	})
@@ -71,8 +71,8 @@ func TestRepositoryСase2(t *testing.T) {
 		}
 	}()
 
-	var roleRepository = role.NewRoleRepository(db)
-	var fixture = NewFixture(roleRepository)
+	var repository = role.NewRoleRepository(db)
+	var fixture = NewFixtureRole(repository)
 	var testName = "test name"
 	var testName2 = "test name 2"
 
@@ -80,7 +80,7 @@ func TestRepositoryСase2(t *testing.T) {
 		var newRoleId = fixture.Role(testName)
 		var newRoleId2 = fixture.Role(testName2)
 
-		entities, err := roleRepository.FindByIds([]int64{newRoleId, newRoleId2})
+		entities, err := repository.FindByIds([]int64{newRoleId, newRoleId2})
 
 		a.Nil(err)
 		a.NotEmpty(entities)
@@ -93,16 +93,16 @@ func TestRepositoryСase2(t *testing.T) {
 		a.Equal(testName, entities[0].Name)
 		a.Equal(testName2, entities[1].Name)
 
-		entities, err = roleRepository.GetAll()
+		entities, err = repository.GetAll()
 		a.Nil(err)
 		a.NotEmpty(entities)
 		a.Equal(2, len(entities))
 		a.Equal(testName, entities[0].Name)
 		a.Equal(testName2, entities[1].Name)
 
-		err = roleRepository.DeleteByIds([]int64{entities[0].Id, entities[1].Id})
+		err = repository.DeleteByIds([]int64{entities[0].Id, entities[1].Id})
 		a.Nil(err)
-		entities, err = roleRepository.GetAll()
+		entities, err = repository.GetAll()
 		a.Nil(err)
 		a.Equal(0, len(entities))
 	})

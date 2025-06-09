@@ -1,4 +1,4 @@
-package database
+package tests
 
 import (
 	"idm/inner/common"
@@ -15,13 +15,6 @@ type DataMigration struct {
 	Version int64     `db:"version_id"`
 	Applied bool      `db:"is_applied"`
 	Create  time.Time `db:"tstamp"`
-}
-
-func ClearEnv() {
-	driverName := "DB_DRIVER_NAME"
-	dsnName := "DB_DSN"
-	os.Unsetenv(driverName)
-	os.Unsetenv(dsnName)
 }
 
 // 1 - в проекте нет .env  файла (должны получить конфигурацию из пременных окружения)
