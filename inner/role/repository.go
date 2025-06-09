@@ -22,8 +22,8 @@ func NewRoleRepository(database *sqlx.DB) *RoleRepository {
 	return &RoleRepository{db: database}
 }
 
-func (rep *RoleRepository) SaveRole(entity RoleEntity) (roleId int64, err error) {
-	query := "INSERT INTO role (name) VALUES ($1) RETURN id"
+func (rep *RoleRepository) Save(entity *RoleEntity) (roleId int64, err error) {
+	query := "INSERT INTO role (name) VALUES ($1) RETURNING id"
 	err = rep.db.Get(&roleId, query, entity.Name)
 	return roleId, err
 }
@@ -34,13 +34,13 @@ func (rep *RoleRepository) FindById(id int64) (entity RoleEntity, err error) {
 	return entity, err
 }
 
-func (rep *RoleRepository) GetAllRoles() (entities []RoleEntity, err error) {
+func (rep *RoleRepository) GetAll() (entities []RoleEntity, err error) {
 	query := "SELECT * FROM role"
 	err = rep.db.Select(&entities, query)
 	return entities, err
 }
 
-func (rep *RoleRepository) FindRolesByIds(ids []int64) (entities []RoleEntity, err error) {
+func (rep *RoleRepository) FindByIds(ids []int64) (entities []RoleEntity, err error) {
 	query := "SELECT * FROM ROLE WHERE id IN (?)"
 	query, args, err := sqlx.In(query, ids)
 
@@ -48,18 +48,18 @@ func (rep *RoleRepository) FindRolesByIds(ids []int64) (entities []RoleEntity, e
 		return nil, err
 	}
 
-	query = sqlx.Rebind(0, query)
+	query = sqlx.Rebind(2, query)
 	err = rep.db.Select(&entities, query, args...)
 	return entities, err
 }
 
-func (rep *RoleRepository) DeleteRoleById(id int64) error {
+func (rep *RoleRepository) DeleteById(id int64) error {
 	query := "DELETE FROM role WHERE id = $1"
 	_, err := rep.db.Exec(query, id)
 	return err
 }
 
-func (rep *RoleRepository) DeleteRoleByIds(ids []int64) error {
+func (rep *RoleRepository) DeleteByIds(ids []int64) error {
 	query := "DELETE FROM role WHERE id IN (?)"
 	query, args, err := sqlx.In(query, ids)
 
@@ -67,7 +67,7 @@ func (rep *RoleRepository) DeleteRoleByIds(ids []int64) error {
 		return err
 	}
 
-	query = sqlx.Rebind(0, query)
+	query = sqlx.Rebind(2, query)
 	_, err = rep.db.Exec(query, args...)
 	return err
 }
