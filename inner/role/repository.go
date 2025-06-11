@@ -1,46 +1,37 @@
 package role
 
 import (
-	"time"
-
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-type RoleRepository struct {
+type Repository struct {
 	db *sqlx.DB
 }
 
-type RoleEntity struct {
-	Id     int64     `db:"id"`
-	Name   string    `db:"name"`
-	Create time.Time `db:"create_at"`
-	Update time.Time `db:"update_at"`
+func NewRoleRepository(database *sqlx.DB) *Repository {
+	return &Repository{db: database}
 }
 
-func NewRoleRepository(database *sqlx.DB) *RoleRepository {
-	return &RoleRepository{db: database}
-}
-
-func (rep *RoleRepository) Save(entity *RoleEntity) (roleId int64, err error) {
+func (rep *Repository) Save(entity *Entity) (id int64, err error) {
 	query := "INSERT INTO role (name) VALUES ($1) RETURNING id"
-	err = rep.db.Get(&roleId, query, entity.Name)
-	return roleId, err
+	err = rep.db.Get(&id, query, entity.Name)
+	return id, err
 }
 
-func (rep *RoleRepository) FindById(id int64) (entity RoleEntity, err error) {
+func (rep *Repository) FindById(id int64) (entity Entity, err error) {
 	query := "SELECT * FROM role WHERE id = $1"
 	err = rep.db.Get(&entity, query, id)
 	return entity, err
 }
 
-func (rep *RoleRepository) GetAll() (entities []RoleEntity, err error) {
+func (rep *Repository) GetAll() (entities []Entity, err error) {
 	query := "SELECT * FROM role"
 	err = rep.db.Select(&entities, query)
 	return entities, err
 }
 
-func (rep *RoleRepository) FindByIds(ids []int64) (entities []RoleEntity, err error) {
+func (rep *Repository) FindByIds(ids []int64) (entities []Entity, err error) {
 	query := "SELECT * FROM ROLE WHERE id IN (?)"
 	query, args, err := sqlx.In(query, ids)
 
@@ -53,13 +44,13 @@ func (rep *RoleRepository) FindByIds(ids []int64) (entities []RoleEntity, err er
 	return entities, err
 }
 
-func (rep *RoleRepository) DeleteById(id int64) error {
+func (rep *Repository) DeleteById(id int64) error {
 	query := "DELETE FROM role WHERE id = $1"
 	_, err := rep.db.Exec(query, id)
 	return err
 }
 
-func (rep *RoleRepository) DeleteByIds(ids []int64) error {
+func (rep *Repository) DeleteByIds(ids []int64) error {
 	query := "DELETE FROM role WHERE id IN (?)"
 	query, args, err := sqlx.In(query, ids)
 

@@ -15,23 +15,23 @@ func ClearEnv() {
 }
 
 type FixtureRole struct {
-	roles *role.RoleRepository
+	roles *role.Repository
 }
 
 type FixtureEmployee struct {
-	employee *employee.EmployeeRepository
+	employee *employee.Repository
 }
 
-func NewFixtureRole(roles *role.RoleRepository) *FixtureRole {
+func NewFixtureRole(roles *role.Repository) *FixtureRole {
 	return &FixtureRole{roles}
 }
 
-func NewFixtureEmployee(employee *employee.EmployeeRepository) *FixtureEmployee {
+func NewFixtureEmployee(employee *employee.Repository) *FixtureEmployee {
 	return &FixtureEmployee{employee}
 }
 
 func (f *FixtureRole) Role(name string) int64 {
-	var entity = role.RoleEntity{
+	var entity = role.Entity{
 		Name: name,
 	}
 	newId, err := f.roles.Save(&entity)
@@ -42,7 +42,7 @@ func (f *FixtureRole) Role(name string) int64 {
 }
 
 func (f *FixtureEmployee) Employee(name string) int64 {
-	var entity = employee.EmployeeEntity{
+	var entity = employee.Entity{
 		Name: name,
 	}
 	newId, err := f.employee.Save(&entity)
