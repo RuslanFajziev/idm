@@ -7,13 +7,68 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock" // библиотека для мокирования SQL-запросов в тестах
+	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert" // импортируем библиотеку с ассерт-функциями
 	"github.com/stretchr/testify/mock"   // импортируем пакет для создания моков
 )
 
+func NewSqlmock() (*sqlx.DB, sqlmock.Sqlmock, error) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		return nil, nil, err
+	}
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+	return sqlxDB, mock, nil
+}
+
+func TestBeginTRansactionError(t *testing.T) {
+	a := assert.New(t)
+	db, mock, err := NewSqlmock()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+	err = errors.New("connection error")
+	mock.ExpectBegin().WillReturnError(err)
+
+	t.Run("check error begin transation", func(t *testing.T) {
+		repo := NewEmployeeRepository(db)
+		srv := NewService(repo)
+
+		id, errIn := srv.SaveTx(Request{Name: "Pupkin"})
+		a.Equal(int64(0), id)
+		a.Error(errIn)
+		a.Equal(errIn.Error(), fmt.Errorf("error creating transaction: %w", err).Error())
+	})
+
+	// t.Run("should return the id of the saved entity", func(t *testing.T) {
+	// 	repo := NewStubRepo()
+	// 	srv := NewService(repo)
+	// 	var request = Request{
+	// 		Name:   "Van Dam",
+	// 		Create: time.Now(),
+	// 		Update: time.Now(),
+	// 	}
+	// 	newId, err := srv.Save(request)
+
+	// 	a.Nil(err)
+	// 	a.Equal(int64(3), newId)
+	// })
+
+}
+
 // объявляем структуру мок-репозитория
 type MockRepo struct {
 	mock.Mock
+}
+
+func (rep *MockRepo) BeginTransaction() (tx *sqlx.Tx, err error) {
+	return nil, nil
+}
+
+func (s *MockRepo) SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error) {
+	return 99, nil
 }
 
 // реализуем интерфейс репозитория у мока
@@ -60,6 +115,14 @@ func NewStubRepo() *StubRepo {
 			2: {Name: "John Doe", Id: 2},
 		},
 	}
+}
+
+func (rep *StubRepo) BeginTransaction() (tx *sqlx.Tx, err error) {
+	return nil, nil
+}
+
+func (s *StubRepo) SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error) {
+	return 99, nil
 }
 
 func (s *StubRepo) Save(entity *Entity) (id int64, err error) {
