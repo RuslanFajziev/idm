@@ -1,6 +1,8 @@
 package employee
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -11,6 +13,28 @@ type Repository struct {
 
 func NewEmployeeRepository(database *sqlx.DB) *Repository {
 	return &Repository{db: database}
+}
+
+func (rep *Repository) BeginTransaction() (tx *sqlx.Tx, err error) {
+	return rep.db.Beginx()
+}
+
+func (rep *Repository) FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, err error) {
+	err = tx.Get(&isExists, "SELECT EXISTS(SELECT 1 FROM employee WHERE name = $1)", name)
+	return isExists, err
+}
+
+func (rep *Repository) SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error) {
+	isExists, err := rep.FindByNameTx(tx, entity.Name)
+	if err != nil {
+		return 0, err
+	}
+	if isExists {
+		return 0, fmt.Errorf("employee already exists")
+	}
+	query := "INSERT INTO employee (name, create_at, update_at) VALUES ($1, $2, $3) RETURNING id"
+	err = tx.Get(&id, query, entity.Name, entity.Create, entity.Update)
+	return id, err
 }
 
 func (rep *Repository) Save(entity *Entity) (id int64, err error) {
