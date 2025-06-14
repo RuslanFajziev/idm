@@ -22,7 +22,8 @@ func NewSqlmock() (*sqlx.DB, sqlmock.Sqlmock, error) {
 	return sqlxDB, mock, nil
 }
 
-func TestBeginTRansactionError(t *testing.T) {
+// не удалось создать транзакцию
+func TestBeginTransactionError(t *testing.T) {
 	a := assert.New(t)
 	db, mock, err := NewSqlmock()
 	if err != nil {
@@ -40,22 +41,129 @@ func TestBeginTRansactionError(t *testing.T) {
 		a.Equal(int64(0), id)
 		a.Error(errIn)
 		a.Equal(errIn.Error(), fmt.Errorf("error creating transaction: %w", err).Error())
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
+}
 
-	// t.Run("should return the id of the saved entity", func(t *testing.T) {
-	// 	repo := NewStubRepo()
-	// 	srv := NewService(repo)
-	// 	var request = Request{
-	// 		Name:   "Van Dam",
-	// 		Create: time.Now(),
-	// 		Update: time.Now(),
-	// 	}
-	// 	newId, err := srv.Save(request)
+// ошибка при проверке наличия работника с таким именем
+func TestFindByName(t *testing.T) {
+	a := assert.New(t)
+	db, mock, err := NewSqlmock()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
 
-	// 	a.Nil(err)
-	// 	a.Equal(int64(3), newId)
-	// })
+	err = errors.New("db error while searching by name")
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT 1 FROM employee").WillReturnError(err)
+	mock.ExpectRollback()
 
+	t.Run("check error while searching by name", func(t *testing.T) {
+		repo := NewEmployeeRepository(db)
+		srv := NewService(repo)
+
+		id, errIn := srv.SaveTx(Request{Name: "Pupkin"})
+		a.Equal(int64(0), id)
+		a.Error(errIn)
+		a.True(strings.Contains(errIn.Error(), fmt.Errorf("db error while searching by name").Error()))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// работник с таким именем уже есть в базе данных
+func TestFindByName2(t *testing.T) {
+	a := assert.New(t)
+	db, mock, err := NewSqlmock()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	rows := sqlmock.NewRows([]string{"exists"}).AddRow(true)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT EXISTS").WillReturnRows(rows)
+	mock.ExpectRollback()
+
+	t.Run("check save employee, when a employee with that name exists", func(t *testing.T) {
+		repo := NewEmployeeRepository(db)
+		srv := NewService(repo)
+
+		id, errIn := srv.SaveTx(Request{Name: "Pupkin"})
+		a.Equal(int64(0), id)
+		a.Error(errIn)
+		a.True(strings.Contains(errIn.Error(), "employee already exists"))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// работника с таким именем нет в базе данных, но создание нового работника завершилось ошибкой
+func TestFindByNameAndSave(t *testing.T) {
+	a := assert.New(t)
+	db, mock, err := NewSqlmock()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	req := Request{
+		Name:   "Pupkin",
+		Create: time.Now(),
+		Update: time.Now(),
+	}
+
+	rows := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+	err = fmt.Errorf("db error when add new employee")
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT EXISTS").WillReturnRows(rows)
+	mock.ExpectQuery("INSERT INTO employee").WillReturnError(err)
+	mock.ExpectRollback()
+
+	t.Run("check save employee, when save error", func(t *testing.T) {
+		repo := NewEmployeeRepository(db)
+		srv := NewService(repo)
+
+		id, errIn := srv.SaveTx(req)
+		a.Equal(int64(0), id)
+		a.Error(errIn)
+		a.True(strings.Contains(errIn.Error(), err.Error()))
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+// успешное создание нового работника
+func TestFindByNameAndSave2(t *testing.T) {
+	a := assert.New(t)
+	db, mock, err := NewSqlmock()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	req := Request{
+		Name:   "Pupkin",
+		Create: time.Now(),
+		Update: time.Now(),
+	}
+
+	rows := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+	rowsIds := sqlmock.NewRows([]string{"id"}).AddRow(int64(777))
+
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT EXISTS").WillReturnRows(rows)
+	mock.ExpectQuery("INSERT INTO employee").WillReturnRows(rowsIds)
+	mock.ExpectCommit()
+
+	t.Run("check save employee, when save employee success", func(t *testing.T) {
+		repo := NewEmployeeRepository(db)
+		srv := NewService(repo)
+
+		id, errIn := srv.SaveTx(req)
+		a.Equal(int64(777), id)
+		a.NoError(errIn)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 // объявляем структуру мок-репозитория
