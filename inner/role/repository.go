@@ -13,6 +13,11 @@ func NewRoleRepository(database *sqlx.DB) *Repository {
 	return &Repository{db: database}
 }
 
+func (rep *Repository) FindByName(name string) (isExists bool, err error) {
+	err = rep.db.Get(&isExists, "SELECT EXISTS(SELECT 1 FROM employee WHERE name = $1)", name)
+	return isExists, err
+}
+
 func (rep *Repository) Save(entity *Entity) (id int64, err error) {
 	query := "INSERT INTO role (name) VALUES ($1) RETURNING id"
 	err = rep.db.Get(&id, query, entity.Name)

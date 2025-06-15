@@ -21,9 +21,21 @@ type Response struct {
 }
 
 type Request struct {
-	Name   string    `json:"name"`
-	Create time.Time `json:"create_at"`
-	Update time.Time `json:"update_at"`
+	Name   string    `json:"name" validate:"required,min=2,max=155"`
+	Create time.Time `json:"create_at" validate:"required"`
+	Update time.Time `json:"update_at" validate:"required"`
+}
+
+type RequestById struct {
+	Id int64 `json:"id" validate:"required,gt=0"`
+}
+
+type RequestByIds struct {
+	Ids []int64 `json:"ids" validate:"required"`
+}
+
+type RequestByName struct {
+	Name string `json:"name" validate:"required,min=2,max=155"`
 }
 
 func (e *Entity) toResponse() Response {

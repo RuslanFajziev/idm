@@ -26,6 +26,18 @@ type Request struct {
 	Update time.Time `json:"update_at" validate:"required"`
 }
 
+type RequestById struct {
+	Id int64 `json:"id" validate:"required,gt=0"`
+}
+
+type RequestByIds struct {
+	Ids []int64 `json:"ids" validate:"required"`
+}
+
+type RequestByName struct {
+	Name string `json:"name" validate:"required,min=2,max=155"`
+}
+
 func (e *Entity) toResponse() Response {
 	return Response{
 		Id:     e.Id,

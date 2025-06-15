@@ -2,6 +2,8 @@ module idm
 
 go 1.24.3
 
+require github.com/gofiber/fiber v1.14.6
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
@@ -13,8 +15,10 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/gofiber/fiber/v3 v3.0.0-beta.4 // indirect
 	github.com/gofiber/schema v1.5.0 // indirect
+	github.com/gofiber/utils v0.0.10 // indirect
 	github.com/gofiber/utils/v2 v2.0.0-beta.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
