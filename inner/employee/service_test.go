@@ -171,6 +171,10 @@ type MockRepo struct {
 	mock.Mock
 }
 
+func (rep *MockRepo) FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, err error) {
+	return true, nil
+}
+
 func (rep *MockRepo) BeginTransaction() (tx *sqlx.Tx, err error) {
 	return nil, nil
 }
@@ -223,6 +227,10 @@ func NewStubRepo() *StubRepo {
 			2: {Name: "John Doe", Id: 2},
 		},
 	}
+}
+
+func (rep *StubRepo) FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, err error) {
+	return true, nil
 }
 
 func (rep *StubRepo) BeginTransaction() (tx *sqlx.Tx, err error) {
