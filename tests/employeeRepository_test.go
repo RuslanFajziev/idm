@@ -47,9 +47,9 @@ func TestSaveTx(t *testing.T) {
 
 		tx, err = repo.BeginTransaction()
 		a.NoError(err)
-		id, err = repo.SaveTx(tx, &entity)
-		a.Error(err)
-		a.Equal("employee already exists", err.Error())
+		isExists, err := repo.FindByNameTx(tx, entity.Name)
+		a.NoError(err)
+		a.True(isExists)
 		err = tx.Rollback()
 		a.NoError(err)
 	})

@@ -1,8 +1,6 @@
 package employee
 
 import (
-	"fmt"
-
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -25,13 +23,6 @@ func (rep *Repository) FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, er
 }
 
 func (rep *Repository) SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error) {
-	isExists, err := rep.FindByNameTx(tx, entity.Name)
-	if err != nil {
-		return 0, err
-	}
-	if isExists {
-		return 0, fmt.Errorf("employee already exists")
-	}
 	query := "INSERT INTO employee (name, create_at, update_at) VALUES ($1, $2, $3) RETURNING id"
 	err = tx.Get(&id, query, entity.Name, entity.Create, entity.Update)
 	return id, err

@@ -14,6 +14,7 @@ type Service struct {
 }
 
 type Repo interface {
+	FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, err error)
 	BeginTransaction() (tx *sqlx.Tx, err error)
 	SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error)
 	Save(entity *Entity) (id int64, err error)
@@ -47,6 +48,7 @@ func (serv *Service) SaveTx(req Request) (id int64, err error) {
 	if err != nil {
 		return 0, fmt.Errorf("error creating transaction: %w", err)
 	}
+
 	defer func() {
 		// проверяем, не было ли паники
 		if r := recover(); r != nil {
@@ -70,6 +72,14 @@ func (serv *Service) SaveTx(req Request) (id int64, err error) {
 			}
 		}
 	}()
+
+	isExists, err := serv.repo.FindByNameTx(tx, req.Name)
+	if err != nil {
+		return 0, err
+	}
+	if isExists {
+		return 0, fmt.Errorf("employee already exists")
+	}
 
 	return serv.repo.SaveTx(tx, req.toEntity())
 }
