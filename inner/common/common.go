@@ -13,6 +13,22 @@ type Config struct {
 	Dsn          string `validate:"required"`
 }
 
+type RequestValidationError struct {
+	Message string
+}
+
+type AlreadyExistsError struct {
+	Message string
+}
+
+func (err RequestValidationError) Error() string {
+	return err.Message
+}
+
+func (err AlreadyExistsError) Error() string {
+	return err.Message
+}
+
 // GetConfig получение конфигурации из .env файла или переменных окружения
 func GetConfig(envFile string) (Config, error) {
 	err := godotenv.Load(envFile)

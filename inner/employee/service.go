@@ -3,11 +3,14 @@ package employee
 import (
 	"fmt"
 
+	"idm/inner/common"
+
 	"github.com/jmoiron/sqlx"
 )
 
 type Service struct {
-	repo Repo
+	repo  Repo
+	valid Validator
 }
 
 type Repo interface {
@@ -21,13 +24,25 @@ type Repo interface {
 	DeleteByIds(ids []int64) error
 }
 
-func NewService(repo Repo) *Service {
+type Validator interface {
+	Validate(request any) error
+}
+
+func NewService(repo Repo, validator Validator) *Service {
 	return &Service{
-		repo: repo,
+		repo:  repo,
+		valid: validator,
 	}
 }
 
 func (serv *Service) SaveTx(req Request) (id int64, err error) {
+	// валидируем запрос (про валидатор расскажу дальше)
+	err = serv.valid.Validate(req)
+	if err != nil {
+		// возвращаем кастомную ошибку в случае, если запрос не прошёл валидацию (про кастомные ошибки - дальше)
+		return 0, common.RequestValidationError{Message: err.Error()}
+	}
+
 	tx, err := serv.repo.BeginTransaction()
 	if err != nil {
 		return 0, fmt.Errorf("error creating transaction: %w", err)

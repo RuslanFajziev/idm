@@ -21,9 +21,9 @@ type Response struct {
 }
 
 type Request struct {
-	Name   string    `json:"name"`
-	Create time.Time `json:"create_at"`
-	Update time.Time `json:"update_at"`
+	Name   string    `json:"name" validate:"required,min=2,max=155"`
+	Create time.Time `json:"create_at" validate:"required"`
+	Update time.Time `json:"update_at" validate:"required"`
 }
 
 func (e *Entity) toResponse() Response {
