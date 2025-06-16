@@ -75,10 +75,10 @@ func (serv *Service) SaveTx(req Request) (id int64, err error) {
 
 	isExists, err := serv.repo.FindByNameTx(tx, req.Name)
 	if err != nil {
-		return 0, common.DbOperationError{Message: fmt.Sprintf("error finding employee by name: %s, %w", req.Name, err)}
+		return 0, common.DbOperationError{Message: fmt.Errorf("error finding employee by name: %s, %w", req.Name, err).Error()}
 	}
 	if isExists {
-		return 0, common.AlreadyExistsError{Message: fmt.Sprintf("employee with name %s already exists", req.Name)}
+		return 0, common.AlreadyExistsError{Message: fmt.Errorf("employee with name %s already exists", req.Name).Error()}
 	}
 
 	newId, err := serv.repo.SaveTx(tx, req.toEntity())
@@ -100,7 +100,7 @@ func (serv *Service) Save(req Request) (id int64, err error) {
 func (serv *Service) FindById(id int64) (Response, error) {
 	resp, err := serv.repo.FindById(id)
 	if err != nil {
-		return Response{}, common.DbOperationError{Message: fmt.Sprintf("error finding employee with id %d: %w", id, err)}
+		return Response{}, common.DbOperationError{Message: fmt.Errorf("error finding employee with id %d: %w", id, err).Error()}
 
 	}
 
@@ -110,7 +110,7 @@ func (serv *Service) FindById(id int64) (Response, error) {
 func (serv *Service) GetAll() ([]Response, error) {
 	resps, err := serv.repo.GetAll()
 	if err != nil {
-		return []Response{}, common.DbOperationError{Message: fmt.Sprintf("error get all employees: %w", err)}
+		return []Response{}, common.DbOperationError{Message: fmt.Errorf("error get all employees: %w", err).Error()}
 	}
 
 	return toResponses(resps), nil
@@ -119,7 +119,7 @@ func (serv *Service) GetAll() ([]Response, error) {
 func (serv *Service) FindByIds(ids []int64) ([]Response, error) {
 	resps, err := serv.repo.FindByIds(ids)
 	if err != nil {
-		return []Response{}, common.DbOperationError{Message: fmt.Sprintf("error finding employee with ids %d: %w", ids, err)}
+		return []Response{}, common.DbOperationError{Message: fmt.Errorf("error finding employee with ids %d: %w", ids, err).Error()}
 	}
 
 	return toResponses(resps), nil
@@ -128,7 +128,7 @@ func (serv *Service) FindByIds(ids []int64) ([]Response, error) {
 func (serv *Service) DeleteById(id int64) error {
 	err := serv.repo.DeleteById(id)
 	if err != nil {
-		return common.DbOperationError{Message: fmt.Sprintf("error delete employee by id %d: %w", id, err)}
+		return common.DbOperationError{Message: fmt.Errorf("error delete employee by id %d: %w", id, err).Error()}
 	}
 
 	return nil
@@ -137,7 +137,7 @@ func (serv *Service) DeleteById(id int64) error {
 func (serv *Service) DeleteByIds(ids []int64) error {
 	err := serv.repo.DeleteByIds(ids)
 	if err != nil {
-		return common.DbOperationError{Message: fmt.Sprintf("error delete employee by ids %d: %w", ids, err)}
+		return common.DbOperationError{Message: fmt.Errorf("error delete employee by ids %d: %w", ids, err).Error()}
 	}
 
 	return nil

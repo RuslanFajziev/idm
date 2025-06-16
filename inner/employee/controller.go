@@ -31,15 +31,15 @@ func NewController(server *web.Server, employeeService Srv) *Controller {
 }
 
 // функция для регистрации маршрутов
-func (c *Controller) RegisterRoutes() {
+func (contr *Controller) RegisterRoutes() {
 
 	// полный маршрут получится "/api/v1/employees"
-	c.server.GroupApiV1.Post("/employees", c.CreateEmployee)
-	c.server.GroupApiV1.Get("/employees", c.GetAllEmployee)
-	c.server.GroupApiV1.Get("/employees/id/:id", c.FindEmployeeById)
-	c.server.GroupApiV1.Get("/employees/ids/:ids", c.FindEmployeeByIds)
-	c.server.GroupApiV1.Delete("/employees/id/:id", c.DeleteEmployeeById)
-	c.server.GroupApiV1.Delete("/employees/ids/:ids", c.DeleteEmployeeByIds)
+	contr.server.GroupApiV1.Post("/employees", contr.CreateEmployee)
+	contr.server.GroupApiV1.Get("/employees", contr.GetAllEmployee)
+	contr.server.GroupApiV1.Get("/employees/id/:id", contr.FindEmployeeById)
+	contr.server.GroupApiV1.Get("/employees/ids/:ids", contr.FindEmployeeByIds)
+	contr.server.GroupApiV1.Delete("/employees/id/:id", contr.DeleteEmployeeById)
+	contr.server.GroupApiV1.Delete("/employees/ids/:ids", contr.DeleteEmployeeByIds)
 }
 
 // функция-хендлер, которая будет вызываться при POST запросе по маршруту "/api/v1/employees"

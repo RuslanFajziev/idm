@@ -31,15 +31,15 @@ func NewController(server *web.Server, roleervice Srv) *Controller {
 }
 
 // функция для регистрации маршрутов
-func (c *Controller) RegisterRoutes() {
+func (contr *Controller) RegisterRoutes() {
 
 	// полный маршрут получится "/api/v1/role"
-	c.server.GroupApiV1.Post("/role", c.CreateRole)
-	c.server.GroupApiV1.Get("/role", c.GetAllRole)
-	c.server.GroupApiV1.Get("/role/id/:id", c.FindRoleById)
-	c.server.GroupApiV1.Get("/role/ids/:ids", c.FindRoleByIds)
-	c.server.GroupApiV1.Delete("/role/id/:id", c.DeleteRoleById)
-	c.server.GroupApiV1.Delete("/role/ids/:ids", c.DeleteRoleByIds)
+	contr.server.GroupApiV1.Post("/role", contr.CreateRole)
+	contr.server.GroupApiV1.Get("/role", contr.GetAllRole)
+	contr.server.GroupApiV1.Get("/role/id/:id", contr.FindRoleById)
+	contr.server.GroupApiV1.Get("/role/ids/:ids", contr.FindRoleByIds)
+	contr.server.GroupApiV1.Delete("/role/id/:id", contr.DeleteRoleById)
+	contr.server.GroupApiV1.Delete("/role/ids/:ids", contr.DeleteRoleByIds)
 }
 
 // функция-хендлер, которая будет вызываться при POST запросе по маршруту "/api/v1/role"

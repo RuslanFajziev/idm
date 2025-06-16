@@ -34,10 +34,6 @@ type RequestByIds struct {
 	Ids []int64 `json:"ids" validate:"required"`
 }
 
-type RequestByName struct {
-	Name string `json:"name" validate:"required,min=2,max=155"`
-}
-
 func (e *Entity) toResponse() Response {
 	return Response{
 		Id:     e.Id,

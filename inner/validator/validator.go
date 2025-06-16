@@ -15,7 +15,7 @@ func NewRequestValidator() *RequestValidator {
 	return &RequestValidator{validate: validate}
 }
 
-func (v RequestValidator) Validate(request any) (err error) {
+func (v *RequestValidator) Validate(request any) (err error) {
 	err = v.validate.Struct(request)
 	if err != nil {
 		var validateErrs validator.ValidationErrors
