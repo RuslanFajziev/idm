@@ -54,11 +54,23 @@ func OkResponse[T any](
 	})
 }
 
+func OkResponse2[T any](
+	c *fiber.Ctx,
+	data T,
+) error {
+	response := ResponseBody[T]{
+		Success: true,
+		Data:    data,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response) // Передаём по значению
+}
+
 func ResponseWithoutData(
 	c *fiber.Ctx,
 	code int,
 ) error {
-	return c.Status(code).JSON(&ResponseBody[any]{
+	return c.JSON(&ResponseBody[any]{
 		Success: true,
 	})
 }

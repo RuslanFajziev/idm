@@ -27,7 +27,7 @@ type Request struct {
 }
 
 type RequestById struct {
-	Id int64 `json:"id" validate:"required,gt=0"`
+	Id int64 `json:"id" validate:"required,gt=0" query:"id"`
 }
 
 type RequestByIds struct {
