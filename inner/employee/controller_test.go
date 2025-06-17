@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber"
 	"github.com/stretchr/testify/assert"
@@ -150,6 +151,75 @@ func TestCreateEmployee(t *testing.T) {
 		bytesData, err := io.ReadAll(resp.Body)
 		a.Nil(err)
 		var responseBody common.ResponseBody[string]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.False(responseBody.Success)
+		a.NotEmpty(responseBody.Message)
+		a.Equal(errMess2, responseBody.Message)
+	})
+}
+
+func TestContrlFindById(t *testing.T) {
+	var a = assert.New(t)
+
+	// тестируем положительный сценарий: работника создали и получили его id
+	t.Run("should return employee by id", func(t *testing.T) {
+		// Готовим тестовое окружение
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+		// Готовим тестовое окружение
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
+		// req.Header.Set("Content-Type", "application/json")
+
+		// Настраиваем поведение мока в тесте
+		var entity = Response{
+			Id:     123,
+			Name:   "Pupkin",
+			Create: time.Now(),
+			Update: time.Now(),
+		}
+		svc.On("FindById", int64(123)).Return(entity, nil)
+
+		// Отправляем тестовый запрос на веб сервер
+		resp, err := server.App.Test(req)
+
+		// Выполняем проверки полученных данных
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusOK, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[Response]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.Equal(entity.Name, responseBody.Data.Name)
+		a.True(responseBody.Success)
+		a.Empty(responseBody.Message)
+	})
+
+	t.Run("should exception FindById", func(t *testing.T) {
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
+		var errMess1 = fmt.Errorf("database error")
+		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		svc.On("FindById", int64(123)).Return(Response{}, common.DbOperationError{Message: errMess2})
+
+		// Отправляем тестовый запрос на веб сервер
+		resp, err := server.App.Test(req)
+
+		// Выполняем проверки полученных данных
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusInternalServerError, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[Response]
 		err = json.Unmarshal(bytesData, &responseBody)
 		a.Nil(err)
 		a.False(responseBody.Success)
