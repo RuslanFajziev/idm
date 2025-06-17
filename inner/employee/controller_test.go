@@ -432,3 +432,56 @@ func TestContrlFindByIds(t *testing.T) {
 		a.Equal(errMess2, responseBody.Message)
 	})
 }
+
+func TestContrlDeleteByIds(t *testing.T) {
+	var a = assert.New(t)
+
+	// тестируем положительный сценарий: работника создали и получили его id
+	t.Run("should DeleteByIds", func(t *testing.T) {
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
+		svc.On("DeleteByIds", []int64{1, 2, 3}).Return(nil)
+
+		resp, err := server.App.Test(req)
+
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusOK, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[any]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.True(responseBody.Success)
+		a.Empty(responseBody.Message)
+	})
+
+	t.Run("should exception DeleteByIds", func(t *testing.T) {
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
+
+		var errMess1 = fmt.Errorf("database error")
+		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		svc.On("DeleteByIds", []int64{1, 2, 3}).Return(common.DbOperationError{Message: errMess2})
+
+		resp, err := server.App.Test(req)
+
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusInternalServerError, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[any]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.False(responseBody.Success)
+		a.NotEmpty(responseBody.Message)
+		a.Equal(errMess2, responseBody.Message)
+	})
+}

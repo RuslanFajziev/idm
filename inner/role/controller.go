@@ -142,7 +142,7 @@ func (contr *Controller) DeleteRoleById(ctx *fiber.Ctx) {
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete role")
 		return
 	}
@@ -161,7 +161,7 @@ func (contr *Controller) DeleteRoleByIds(ctx *fiber.Ctx) {
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete roles")
 		return
 	}
