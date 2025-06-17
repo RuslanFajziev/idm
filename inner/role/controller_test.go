@@ -1,4 +1,4 @@
-package employee
+package role
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// Объявляем структуру мока сервиса employee.Service
+// Объявляем структуру мока сервиса role.Service
 type MockService struct {
 	mock.Mock
 }
@@ -28,7 +28,7 @@ func (srv *MockService) FindById(id int64) (Response, error) {
 	return args.Get(0).(Response), args.Error(1)
 }
 
-func (srv *MockService) SaveTx(req Request) (id int64, err error) {
+func (srv *MockService) Save(req Request) (id int64, err error) {
 	args := srv.Called(req)
 	return args.Get(0).(int64), args.Error(1)
 }
@@ -53,11 +53,11 @@ func (srv *MockService) DeleteByIds(ids []int64) error {
 	return args.Error(0)
 }
 
-func TestCreateEmployee(t *testing.T) {
+func TestCreateRole(t *testing.T) {
 	var a = assert.New(t)
 
 	// тестируем положительный сценарий: работника создали и получили его id
-	t.Run("should return created employee id", func(t *testing.T) {
+	t.Run("should return created role id", func(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
@@ -65,11 +65,11 @@ func TestCreateEmployee(t *testing.T) {
 		controller.RegisterRoutes()
 
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
-		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
+		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
 		req.Header.Set("Content-Type", "application/json")
 
 		// Настраиваем поведение мока в тесте
-		svc.On("SaveTx", mock.AnythingOfType("Request")).Return(int64(123), nil)
+		svc.On("Save", mock.AnythingOfType("Request")).Return(int64(123), nil)
 
 		// Отправляем тестовый запрос на веб сервер
 		resp, err := server.App.Test(req)
@@ -88,20 +88,19 @@ func TestCreateEmployee(t *testing.T) {
 		a.Empty(responseBody.Message)
 	})
 
-	t.Run("should return error when saving employee", func(t *testing.T) {
+	t.Run("should return error when saving role", func(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		// Готовим тестовое окружение
+
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
-		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
+		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Настраиваем поведение мока в тесте
-		var errMess = fmt.Errorf("employee with name %s already exists", "john doe").Error()
-		svc.On("SaveTx", mock.AnythingOfType("Request")).Return(int64(0),
+		var errMess = fmt.Errorf("role with name %s already exists", "john doe").Error()
+		svc.On("Save", mock.AnythingOfType("Request")).Return(int64(0),
 			common.AlreadyExistsError{Message: errMess})
 
 		// Отправляем тестовый запрос на веб сервер
@@ -119,7 +118,7 @@ func TestCreateEmployee(t *testing.T) {
 		a.Equal(errMess, responseBody.Message)
 	})
 
-	t.Run("should return error when saving employee v2", func(t *testing.T) {
+	t.Run("should return error when saving role v2", func(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
@@ -127,15 +126,15 @@ func TestCreateEmployee(t *testing.T) {
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
-		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
+		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
 		req.Header.Set("Content-Type", "application/json")
 
 		body = strings.NewReader("{\"name\": \"john doe\"}")
-		req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
+		req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
 		req.Header.Set("Content-Type", "application/json")
 		// Настраиваем поведение мока в тесте
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employee by name: %s, %w", "john doe", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding role by name: %s, %w", "john doe", errMess1).Error()
 		svc.On("SaveTx", mock.AnythingOfType("Request")).Return(int64(0),
 			common.DbOperationError{Message: errMess2})
 
@@ -159,14 +158,14 @@ func TestContrlFindById(t *testing.T) {
 	var a = assert.New(t)
 
 	// тестируем положительный сценарий: работника создали и получили его id
-	t.Run("should return employee by id", func(t *testing.T) {
+	t.Run("should return role by id", func(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles/id/123", nil)
 		// req.Header.Set("Content-Type", "application/json")
 
 		// Настраиваем поведение мока в тесте
@@ -201,9 +200,9 @@ func TestContrlFindById(t *testing.T) {
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles/id/123", nil)
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding role by id: %s, %w", "123", errMess1).Error()
 		svc.On("FindById", int64(123)).Return(Response{}, common.DbOperationError{Message: errMess2})
 
 		// Отправляем тестовый запрос на веб сервер
@@ -228,14 +227,14 @@ func TestContrlGetAll(t *testing.T) {
 	var a = assert.New(t)
 
 	// тестируем положительный сценарий: работника создали и получили его id
-	t.Run("should return employee all", func(t *testing.T) {
+	t.Run("should return role all", func(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles", nil)
 		// req.Header.Set("Content-Type", "application/json")
 
 		// Настраиваем поведение мока в тесте
@@ -276,9 +275,9 @@ func TestContrlGetAll(t *testing.T) {
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles", nil)
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding role by id: %s, %w", "123", errMess1).Error()
 		svc.On("GetAll").Return([]Response{}, common.DbOperationError{Message: errMess2})
 
 		// Отправляем тестовый запрос на веб сервер
@@ -310,7 +309,7 @@ func TestContrlDeleteById(t *testing.T) {
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
-		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/id/123", nil)
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/roles/id/123", nil)
 
 		svc.On("DeleteById", int64(123)).Return(nil)
 
@@ -337,10 +336,10 @@ func TestContrlDeleteById(t *testing.T) {
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
-		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/id/123", nil)
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/roles/id/123", nil)
 
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding role by id: %s, %w", "123", errMess1).Error()
 		svc.On("DeleteById", int64(123)).Return(common.DbOperationError{Message: errMess2})
 
 		// Отправляем тестовый запрос на веб сервер
@@ -365,12 +364,12 @@ func TestContrlFindByIds(t *testing.T) {
 	var a = assert.New(t)
 
 	// тестируем положительный сценарий: работника создали и получили его id
-	t.Run("should return employees by ids", func(t *testing.T) {
+	t.Run("should return roles by ids", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles/ids?ids=1,2,3", nil)
 		var entity1 = Response{
 			Id:     123,
 			Name:   "Pupkin",
@@ -407,10 +406,10 @@ func TestContrlFindByIds(t *testing.T) {
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/roles/ids?ids=1,2,3", nil)
 
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employees by ids: %s, %w", "1,2,3", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding roles by ids: %s, %w", "1,2,3", errMess1).Error()
 		svc.On("FindByIds", []int64{1, 2, 3}).Return([]Response{}, common.DbOperationError{Message: errMess2})
 
 		resp, err := server.App.Test(req)
@@ -438,7 +437,7 @@ func TestContrlDeleteByIds(t *testing.T) {
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/roles/ids?ids=1,2,3", nil)
 		svc.On("DeleteByIds", []int64{1, 2, 3}).Return(nil)
 
 		resp, err := server.App.Test(req)
@@ -460,10 +459,10 @@ func TestContrlDeleteByIds(t *testing.T) {
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
+		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/roles/ids?ids=1,2,3", nil)
 
 		var errMess1 = fmt.Errorf("database error")
-		var errMess2 = fmt.Errorf("error finding employee by id: %s, %w", "123", errMess1).Error()
+		var errMess2 = fmt.Errorf("error finding role by id: %s, %w", "123", errMess1).Error()
 		svc.On("DeleteByIds", []int64{1, 2, 3}).Return(common.DbOperationError{Message: errMess2})
 
 		resp, err := server.App.Test(req)
