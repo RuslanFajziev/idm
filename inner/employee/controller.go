@@ -137,19 +137,25 @@ func (contr *Controller) GetAllEmployee(ctx *fiber.Ctx) {
 }
 
 func (contr *Controller) DeleteEmployeeById(ctx *fiber.Ctx) {
-	var req RequestById
-	if err := ctx.QueryParser(req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+	var idStr string
+	if idStr = ctx.Params("id"); idStr == "" {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
 		return
 	}
 
-	var err = contr.employeeService.DeleteById(req.Id)
+	num, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
+		return
+	}
+
+	err = contr.employeeService.DeleteById(num)
 	if err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete employee")
 		return
 	}
@@ -168,7 +174,7 @@ func (contr *Controller) DeleteEmployeeByIds(ctx *fiber.Ctx) {
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete employees")
 		return
 	}
