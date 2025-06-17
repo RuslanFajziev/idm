@@ -176,7 +176,7 @@ func TestGetAll(t *testing.T) {
 	t.Run("return all entities", func(t *testing.T) {
 		repo := new(MockRepo)
 		srv := NewService(repo, repo)
-		listEntity := []Entity{Entity{Name: "name1"}, Entity{Name: "name2"}}
+		listEntity := []Entity{{Name: "name1"}, {Name: "name2"}}
 		repo.On("GetAll").Return(listEntity, nil)
 		result, err := srv.GetAll()
 

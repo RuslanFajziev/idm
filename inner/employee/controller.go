@@ -4,6 +4,8 @@ import (
 	"errors"
 	"idm/inner/common"
 	"idm/inner/web"
+	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber"
 )
@@ -37,9 +39,9 @@ func (contr *Controller) RegisterRoutes() {
 	contr.server.GroupApiV1.Post("/employees", contr.CreateEmployee)
 	contr.server.GroupApiV1.Get("/employees", contr.GetAllEmployee)
 	contr.server.GroupApiV1.Get("/employees/id/:id", contr.FindEmployeeById)
-	contr.server.GroupApiV1.Get("/employees/ids/:ids", contr.FindEmployeeByIds)
+	contr.server.GroupApiV1.Get("/employees/ids", contr.FindEmployeeByIds)
 	contr.server.GroupApiV1.Delete("/employees/id/:id", contr.DeleteEmployeeById)
-	contr.server.GroupApiV1.Delete("/employees/ids/:ids", contr.DeleteEmployeeByIds)
+	contr.server.GroupApiV1.Delete("/employees/ids", contr.DeleteEmployeeByIds)
 }
 
 // функция-хендлер, которая будет вызываться при POST запросе по маршруту "/api/v1/employees"
@@ -79,13 +81,19 @@ func (contr *Controller) CreateEmployee(ctx *fiber.Ctx) {
 }
 
 func (contr *Controller) FindEmployeeById(ctx *fiber.Ctx) {
-	var req RequestById
-	if err := ctx.QueryParser(req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+	var idStr string
+	if idStr = ctx.Params("id"); idStr == "" {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
 		return
 	}
 
-	var foundResponse, err = contr.employeeService.FindById(req.Id)
+	num, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
+		return
+	}
+
+	foundResponse, err := contr.employeeService.FindById(num)
 	if err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		return
@@ -98,13 +106,33 @@ func (contr *Controller) FindEmployeeById(ctx *fiber.Ctx) {
 }
 
 func (contr *Controller) FindEmployeeByIds(ctx *fiber.Ctx) {
-	var req RequestByIds
-	if err := ctx.QueryParser(req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+	var req struct {
+		IDs string `query:"ids"`
+	}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
 		return
 	}
 
-	var foundResponses, err = contr.employeeService.FindByIds(req.Ids)
+	if req.IDs == "" {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
+		return
+	}
+
+	idStrings := strings.Split(req.IDs, ",")
+	var ids []int64
+
+	for _, idStr := range idStrings {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
+			return
+		}
+		ids = append(ids, id)
+	}
+
+	var foundResponses, err = contr.employeeService.FindByIds(ids)
 	if err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		return
@@ -130,38 +158,64 @@ func (contr *Controller) GetAllEmployee(ctx *fiber.Ctx) {
 }
 
 func (contr *Controller) DeleteEmployeeById(ctx *fiber.Ctx) {
-	var req RequestById
-	if err := ctx.QueryParser(req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+	var idStr string
+	if idStr = ctx.Params("id"); idStr == "" {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
 		return
 	}
 
-	var err = contr.employeeService.DeleteById(req.Id)
+	num, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
+		return
+	}
+
+	err = contr.employeeService.DeleteById(num)
 	if err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete employee")
 		return
 	}
 }
 
 func (contr *Controller) DeleteEmployeeByIds(ctx *fiber.Ctx) {
-	var req RequestByIds
-	if err := ctx.QueryParser(req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+	var req struct {
+		IDs string `query:"ids"`
+	}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
 		return
 	}
 
-	var err = contr.employeeService.DeleteByIds(req.Ids)
+	if req.IDs == "" {
+		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
+		return
+	}
+
+	idStrings := strings.Split(req.IDs, ",")
+	var ids []int64
+
+	for _, idStr := range idStrings {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
+			return
+		}
+		ids = append(ids, id)
+	}
+
+	var err = contr.employeeService.DeleteByIds(ids)
 	if err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err = common.ResponseWithoutData(ctx, 204); err != nil {
+	if err = common.ResponseWithoutData(ctx); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete employees")
 		return
 	}

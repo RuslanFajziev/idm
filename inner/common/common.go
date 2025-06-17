@@ -56,9 +56,8 @@ func OkResponse[T any](
 
 func ResponseWithoutData(
 	c *fiber.Ctx,
-	code int,
 ) error {
-	return c.Status(code).JSON(&ResponseBody[any]{
+	return c.JSON(&ResponseBody[any]{
 		Success: true,
 	})
 }
