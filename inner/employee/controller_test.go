@@ -364,3 +364,71 @@ func TestContrlDeleteById(t *testing.T) {
 		a.Equal(errMess2, responseBody.Message)
 	})
 }
+
+func TestContrlFindByIds(t *testing.T) {
+	var a = assert.New(t)
+
+	// тестируем положительный сценарий: работника создали и получили его id
+	t.Run("should return employees by ids", func(t *testing.T) {
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
+		var entity1 = Response{
+			Id:     123,
+			Name:   "Pupkin",
+			Create: time.Now(),
+			Update: time.Now(),
+		}
+		var entity2 = Response{
+			Id:     321,
+			Name:   "AnyName",
+			Create: time.Now(),
+			Update: time.Now(),
+		}
+		svc.On("FindByIds", []int64{1, 2, 3}).Return([]Response{entity1, entity2}, nil)
+
+		// Отправляем тестовый запрос на веб сервер
+		resp, err := server.App.Test(req)
+
+		// Выполняем проверки полученных данных
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusOK, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[[]Response]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.True(len(responseBody.Data) == 2)
+		a.True(responseBody.Success)
+		a.Empty(responseBody.Message)
+	})
+
+	t.Run("should exception by ids", func(t *testing.T) {
+		server := web.NewServer()
+		var svc = new(MockService)
+		var controller = NewController(server, svc)
+		controller.RegisterRoutes()
+		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
+
+		var errMess1 = fmt.Errorf("database error")
+		var errMess2 = fmt.Errorf("error finding employees by ids: %s, %w", "1,2,3", errMess1).Error()
+		svc.On("FindByIds", []int64{1, 2, 3}).Return([]Response{}, common.DbOperationError{Message: errMess2})
+
+		resp, err := server.App.Test(req)
+
+		a.Nil(err)
+		a.NotEmpty(resp)
+		a.Equal(http.StatusInternalServerError, resp.StatusCode)
+		bytesData, err := io.ReadAll(resp.Body)
+		a.Nil(err)
+		var responseBody common.ResponseBody[[]Response]
+		err = json.Unmarshal(bytesData, &responseBody)
+		a.Nil(err)
+		a.False(responseBody.Success)
+		a.NotEmpty(responseBody.Message)
+		a.Equal(errMess2, responseBody.Message)
+	})
+}
