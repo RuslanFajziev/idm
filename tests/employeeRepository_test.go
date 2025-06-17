@@ -5,8 +5,55 @@ import (
 	"idm/inner/employee"
 	"testing"
 
+	"time"
+
 	"github.com/stretchr/testify/assert"
 )
+
+func TestSaveTx(t *testing.T) {
+	var env = ".env"
+	Init(env)
+	a := assert.New(t)
+	db, err := database.ConnectDb(env)
+	clearDataBase := func() {
+		db.MustExec("delete from employee")
+	}
+	if err == nil {
+		clearDataBase()
+		defer db.Close()
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			clearDataBase()
+		}
+	}()
+
+	repo := employee.NewEmployeeRepository(db)
+
+	entity := employee.Entity{
+		Name:   "Pupkin",
+		Create: time.Now(),
+		Update: time.Now(),
+	}
+	t.Run("Check save employee in trancation", func(t *testing.T) {
+		tx, err := repo.BeginTransaction()
+		a.NoError(err)
+		id, err := repo.SaveTx(tx, &entity)
+		a.NoError(err)
+		a.True(id > 0)
+		err = tx.Commit()
+		a.NoError(err)
+
+		tx, err = repo.BeginTransaction()
+		a.NoError(err)
+		isExists, err := repo.FindByNameTx(tx, entity.Name)
+		a.NoError(err)
+		a.True(isExists)
+		err = tx.Rollback()
+		a.NoError(err)
+	})
+}
 
 func TestEmployeeRepositoryСase1(t *testing.T) {
 	var env = ".env"

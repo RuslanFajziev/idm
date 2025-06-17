@@ -1,12 +1,19 @@
 package employee
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/jmoiron/sqlx"
+)
 
 type Service struct {
 	repo Repo
 }
 
 type Repo interface {
+	FindByNameTx(tx *sqlx.Tx, name string) (isExists bool, err error)
+	BeginTransaction() (tx *sqlx.Tx, err error)
+	SaveTx(tx *sqlx.Tx, entity *Entity) (id int64, err error)
 	Save(entity *Entity) (id int64, err error)
 	FindById(id int64) (entity Entity, err error)
 	GetAll() (entities []Entity, err error)
@@ -19,6 +26,47 @@ func NewService(repo Repo) *Service {
 	return &Service{
 		repo: repo,
 	}
+}
+
+func (serv *Service) SaveTx(req Request) (id int64, err error) {
+	tx, err := serv.repo.BeginTransaction()
+	if err != nil {
+		return 0, fmt.Errorf("error creating transaction: %w", err)
+	}
+
+	defer func() {
+		// проверяем, не было ли паники
+		if r := recover(); r != nil {
+			err = fmt.Errorf("creating employee panic: %v", r)
+			// если была паника, то откатываем транзакцию
+			errTx := tx.Rollback()
+			if errTx != nil {
+				err = fmt.Errorf("creating employee: rolling back transaction errors: %w, %w", err, errTx)
+			}
+		} else if err != nil {
+			// если произошла другая ошибка (не паника), то откатываем транзакцию
+			errTx := tx.Rollback()
+			if errTx != nil {
+				err = fmt.Errorf("creating employee: rolling back transaction errors: %w, %w", err, errTx)
+			}
+		} else {
+			// если ошибок нет, то коммитим транзакцию
+			errTx := tx.Commit()
+			if errTx != nil {
+				err = fmt.Errorf("creating employee: commiting transaction error: %w", errTx)
+			}
+		}
+	}()
+
+	isExists, err := serv.repo.FindByNameTx(tx, req.Name)
+	if err != nil {
+		return 0, err
+	}
+	if isExists {
+		return 0, fmt.Errorf("employee already exists")
+	}
+
+	return serv.repo.SaveTx(tx, req.toEntity())
 }
 
 func (serv *Service) Save(req Request) (id int64, err error) {
