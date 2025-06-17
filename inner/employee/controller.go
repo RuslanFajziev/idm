@@ -98,7 +98,7 @@ func (contr *Controller) FindEmployeeById(ctx *fiber.Ctx) {
 		return
 	}
 
-	if err = common.OkResponse2(ctx, foundResponse); err != nil {
+	if err = common.OkResponse(ctx, foundResponse); err != nil {
 		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning found employee")
 		return
 	}
