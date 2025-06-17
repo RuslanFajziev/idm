@@ -129,13 +129,10 @@ func TestCreateRole(t *testing.T) {
 		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
 		req.Header.Set("Content-Type", "application/json")
 
-		body = strings.NewReader("{\"name\": \"john doe\"}")
-		req = httptest.NewRequest(fiber.MethodPost, "/api/v1/roles", body)
-		req.Header.Set("Content-Type", "application/json")
 		// Настраиваем поведение мока в тесте
 		var errMess1 = fmt.Errorf("database error")
 		var errMess2 = fmt.Errorf("error finding role by name: %s, %w", "john doe", errMess1).Error()
-		svc.On("SaveTx", mock.AnythingOfType("Request")).Return(int64(0),
+		svc.On("Save", mock.AnythingOfType("Request")).Return(int64(0),
 			common.DbOperationError{Message: errMess2})
 
 		// Отправляем тестовый запрос на веб сервер

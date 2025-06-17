@@ -125,14 +125,11 @@ func TestCreateEmployee(t *testing.T) {
 		var svc = new(MockService)
 		var controller = NewController(server, svc)
 		controller.RegisterRoutes()
-		// Готовим тестовое окружение
+
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
 		var req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
 		req.Header.Set("Content-Type", "application/json")
 
-		body = strings.NewReader("{\"name\": \"john doe\"}")
-		req = httptest.NewRequest(fiber.MethodPost, "/api/v1/employees", body)
-		req.Header.Set("Content-Type", "application/json")
 		// Настраиваем поведение мока в тесте
 		var errMess1 = fmt.Errorf("database error")
 		var errMess2 = fmt.Errorf("error finding employee by name: %s, %w", "john doe", errMess1).Error()
