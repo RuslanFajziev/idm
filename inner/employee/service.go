@@ -3,11 +3,14 @@ package employee
 import (
 	"fmt"
 
+	"idm/inner/common"
+
 	"github.com/jmoiron/sqlx"
 )
 
 type Service struct {
-	repo Repo
+	repo  Repo
+	valid Validator
 }
 
 type Repo interface {
@@ -22,13 +25,25 @@ type Repo interface {
 	DeleteByIds(ids []int64) error
 }
 
-func NewService(repo Repo) *Service {
+type Validator interface {
+	Validate(request any) error
+}
+
+func NewService(repo Repo, validator Validator) *Service {
 	return &Service{
-		repo: repo,
+		repo:  repo,
+		valid: validator,
 	}
 }
 
 func (serv *Service) SaveTx(req Request) (id int64, err error) {
+	// валидируем запрос (про валидатор расскажу дальше)
+	err = serv.valid.Validate(req)
+	if err != nil {
+		// возвращаем кастомную ошибку в случае, если запрос не прошёл валидацию (про кастомные ошибки - дальше)
+		return 0, common.RequestValidationError{Message: err.Error()}
+	}
+
 	tx, err := serv.repo.BeginTransaction()
 	if err != nil {
 		return 0, fmt.Errorf("error creating transaction: %w", err)
@@ -60,13 +75,17 @@ func (serv *Service) SaveTx(req Request) (id int64, err error) {
 
 	isExists, err := serv.repo.FindByNameTx(tx, req.Name)
 	if err != nil {
-		return 0, err
+		return 0, common.DbOperationError{Message: fmt.Errorf("error finding employee by name: %s, %w", req.Name, err).Error()}
 	}
 	if isExists {
-		return 0, fmt.Errorf("employee already exists")
+		return 0, common.AlreadyExistsError{Message: fmt.Errorf("employee with name %s already exists", req.Name).Error()}
 	}
 
-	return serv.repo.SaveTx(tx, req.toEntity())
+	newId, err := serv.repo.SaveTx(tx, req.toEntity())
+	if err != nil {
+		err = fmt.Errorf("error creating employee with name: %s %v", req.Name, err)
+	}
+	return newId, err
 }
 
 func (serv *Service) Save(req Request) (id int64, err error) {
@@ -81,7 +100,8 @@ func (serv *Service) Save(req Request) (id int64, err error) {
 func (serv *Service) FindById(id int64) (Response, error) {
 	resp, err := serv.repo.FindById(id)
 	if err != nil {
-		return Response{}, fmt.Errorf("error finding employee with id %d: %w", id, err)
+		return Response{}, common.DbOperationError{Message: fmt.Errorf("error finding employee with id %d: %w", id, err).Error()}
+
 	}
 
 	return resp.toResponse(), nil
@@ -90,7 +110,7 @@ func (serv *Service) FindById(id int64) (Response, error) {
 func (serv *Service) GetAll() ([]Response, error) {
 	resps, err := serv.repo.GetAll()
 	if err != nil {
-		return []Response{}, fmt.Errorf("error GetAll employees: %w", err)
+		return []Response{}, common.DbOperationError{Message: fmt.Errorf("error get all employees: %w", err).Error()}
 	}
 
 	return toResponses(resps), nil
@@ -99,7 +119,7 @@ func (serv *Service) GetAll() ([]Response, error) {
 func (serv *Service) FindByIds(ids []int64) ([]Response, error) {
 	resps, err := serv.repo.FindByIds(ids)
 	if err != nil {
-		return []Response{}, fmt.Errorf("error finding employee with ids %d: %w", ids, err)
+		return []Response{}, common.DbOperationError{Message: fmt.Errorf("error finding employee with ids %d: %w", ids, err).Error()}
 	}
 
 	return toResponses(resps), nil
@@ -108,7 +128,7 @@ func (serv *Service) FindByIds(ids []int64) ([]Response, error) {
 func (serv *Service) DeleteById(id int64) error {
 	err := serv.repo.DeleteById(id)
 	if err != nil {
-		return fmt.Errorf("error delete employee by id %d: %w", id, err)
+		return common.DbOperationError{Message: fmt.Errorf("error delete employee by id %d: %w", id, err).Error()}
 	}
 
 	return nil
@@ -117,7 +137,7 @@ func (serv *Service) DeleteById(id int64) error {
 func (serv *Service) DeleteByIds(ids []int64) error {
 	err := serv.repo.DeleteByIds(ids)
 	if err != nil {
-		return fmt.Errorf("error delete employee by ids %d: %w", ids, err)
+		return common.DbOperationError{Message: fmt.Errorf("error delete employee by ids %d: %w", ids, err).Error()}
 	}
 
 	return nil

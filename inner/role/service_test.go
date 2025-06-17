@@ -16,6 +16,11 @@ type MockRepo struct {
 	mock.Mock
 }
 
+// объявляем структуру мок-репозитория
+type MockValidator struct {
+	mock.Mock
+}
+
 // реализуем интерфейс репозитория у мока
 func (m *MockRepo) Save(entity *Entity) (id int64, err error) {
 
@@ -27,6 +32,11 @@ func (m *MockRepo) Save(entity *Entity) (id int64, err error) {
 func (m *MockRepo) FindById(id int64) (role Entity, err error) {
 	args := m.Called(id)
 	return args.Get(0).(Entity), args.Error(1)
+}
+
+func (m *MockRepo) FindByName(name string) (isExists bool, err error) {
+	args := m.Called(name)
+	return args.Get(0).(bool), args.Error(1)
 }
 
 func (m *MockRepo) GetAll() (entities []Entity, err error) {
@@ -49,6 +59,11 @@ func (m *MockRepo) DeleteByIds(ids []int64) error {
 	return args.Error(0)
 }
 
+func (m *MockRepo) Validate(request any) (err error) {
+	args := m.Called(request)
+	return args.Error(0)
+}
+
 func TestSave(t *testing.T) {
 	a := assert.New(t)
 	var request = Request{
@@ -59,9 +74,10 @@ func TestSave(t *testing.T) {
 
 	t.Run("should return the id of the saved entity", func(t *testing.T) {
 		repo := new(MockRepo)
-		srv := NewService(repo)
+		srv := NewService(repo, repo)
 		var id int64 = 5
 		entity := request.toEntity()
+		repo.On("FindByName", entity.Name).Return(false, nil)
 		repo.On("Save", entity).Return(id, nil)
 		got, err := srv.Save(request)
 
@@ -70,19 +86,18 @@ func TestSave(t *testing.T) {
 	})
 	t.Run("should return error of the saved entity", func(t *testing.T) {
 		repo := new(MockRepo)
-		srv := NewService(repo)
+		srv := NewService(repo, repo)
 		var id int64 = 0
 		entity := request.toEntity()
-
 		var err = errors.New("database error")
 		var want = fmt.Errorf("error save role: %w", err)
-
+		repo.On("FindByName", entity.Name).Return(false, nil)
 		repo.On("Save", entity).Return(id, err)
 		newId, got := srv.Save(request)
 
 		a.NotNil(err)
 		a.Equal(id, newId)
-		a.Equal(want, got)
+		a.True(strings.Contains(got.Error(), want.Error()))
 	})
 }
 
@@ -96,7 +111,7 @@ func TestFindById(t *testing.T) {
 		var repo = new(MockRepo)
 
 		// создаём экземпляр сервиса, который собираемся тестировать. Передаём в его конструктор мок вместо реального репозитория
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 
 		// создаём Entity, которую должен вернуть репозиторий
 		var entity = Entity{
@@ -133,7 +148,7 @@ func TestFindById(t *testing.T) {
 		var repo = new(MockRepo)
 
 		// создаём новый экземпляр сервиса (чтобы передать ему новый мок репозитория)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 
 		// создаём пустую структуру role.Entity, которую сервис вернёт вместе с ошибкой
 		var entity = Entity{}
@@ -151,7 +166,7 @@ func TestFindById(t *testing.T) {
 		// проверяем результаты теста
 		a.Empty(response)
 		a.NotNil(got)
-		a.Equal(want, got)
+		a.True(strings.Contains(got.Error(), want.Error()))
 		a.True(repo.AssertNumberOfCalls(t, "FindById", 1))
 	})
 }
@@ -160,7 +175,7 @@ func TestGetAll(t *testing.T) {
 	a := assert.New(t)
 	t.Run("return all entities", func(t *testing.T) {
 		repo := new(MockRepo)
-		srv := NewService(repo)
+		srv := NewService(repo, repo)
 		listEntity := []Entity{Entity{Name: "name1"}, Entity{Name: "name2"}}
 		repo.On("GetAll").Return(listEntity, nil)
 		result, err := srv.GetAll()
@@ -172,7 +187,7 @@ func TestGetAll(t *testing.T) {
 	})
 	t.Run("return error when called return all entities", func(t *testing.T) {
 		repo := new(MockRepo)
-		srv := NewService(repo)
+		srv := NewService(repo, repo)
 
 		err := errors.New("database error")
 		want := fmt.Errorf("error GetAll roles: %w", err)
@@ -182,7 +197,7 @@ func TestGetAll(t *testing.T) {
 
 		a.Equal(result, []Response{})
 		a.NotNil(err)
-		a.Equal(want, err)
+		a.True(strings.Contains(err.Error(), want.Error()))
 	})
 }
 
@@ -191,7 +206,7 @@ func TestFindByIds(t *testing.T) {
 
 	t.Run("should return found roles", func(t *testing.T) {
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		var entity1 = Entity{
 			Id:     1,
 			Name:   "Pupkin Vasia",
@@ -221,7 +236,7 @@ func TestFindByIds(t *testing.T) {
 	t.Run("should return wrapped error", func(t *testing.T) {
 
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		entities := []Entity{}
 		var ids = []int64{1, 2}
 
@@ -234,7 +249,7 @@ func TestFindByIds(t *testing.T) {
 
 		a.Equal(response, []Response{})
 		a.NotNil(err)
-		a.Equal(want, err)
+		a.True(strings.Contains(err.Error(), want.Error()))
 		a.True(repo.AssertNumberOfCalls(t, "FindByIds", 1))
 	})
 }
@@ -243,7 +258,7 @@ func TestDeleteById(t *testing.T) {
 	var a = assert.New(t)
 	t.Run("return nil when called DeleteById", func(t *testing.T) {
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		var id int64 = 7
 		repo.On("DeleteById", id).Return(nil).Once()
 		err := svc.DeleteById(id)
@@ -255,7 +270,7 @@ func TestDeleteById(t *testing.T) {
 	t.Run("return error when called DeleteById", func(t *testing.T) {
 
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		var id int64 = 7
 
 		var err = errors.New("database error")
@@ -274,7 +289,7 @@ func TestDeleteByIds(t *testing.T) {
 	var a = assert.New(t)
 	t.Run("return nil when called DeleteByIds", func(t *testing.T) {
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		var ids = []int64{1, 2}
 		repo.On("DeleteByIds", ids).Return(nil).Once()
 		err := svc.DeleteByIds(ids)
@@ -286,7 +301,7 @@ func TestDeleteByIds(t *testing.T) {
 	t.Run("return error when called DeleteByIds", func(t *testing.T) {
 
 		var repo = new(MockRepo)
-		var svc = NewService(repo)
+		var svc = NewService(repo, repo)
 		var ids = []int64{1, 2}
 
 		var err = errors.New("database error")
