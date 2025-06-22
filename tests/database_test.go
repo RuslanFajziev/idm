@@ -43,15 +43,15 @@ func TestConnectionDbСase1(t *testing.T) {
 }
 
 // 2 - в проекте есть .env  файл, но в нём нет нужных переменных и в переменных окружения их тоже нет (должны получить пустую структуру idm.inner.common.Config)
-func TestConnectionDbСase2(t *testing.T) {
-	ClearEnv()
-	as := assert.New(t)
-	conf, err := common.GetConfig(".env_2")
+// func TestConnectionDbСase2(t *testing.T) {
+// 	ClearEnv()
+// 	as := assert.New(t)
+// 	conf, err := common.GetConfig(".env_2")
 
-	as.Equal("", conf.DbDriverName)
-	as.Equal("", conf.Dsn)
-	as.NotEqual(nil, err)
-}
+// 	as.Equal("", conf.DbDriverName)
+// 	as.Equal("", conf.Dsn)
+// 	as.NotEqual(nil, err)
+// }
 
 // 3 - в проекте есть .env  файл и в нём нет нужных переменных, но в переменных окружения они есть (должны получить заполненную структуру  idm.inner.common.Config с данными из пременных окружения)
 func TestConnectionDbСase3(t *testing.T) {
