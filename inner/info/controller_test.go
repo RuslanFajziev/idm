@@ -76,7 +76,7 @@ func TestInternalApiInfo(t *testing.T) {
 
 	t.Run("Check response /internal/info", func(t *testing.T) {
 		server := web.NewServer()
-		conf, _ := common.GetConfig("../../.env")
+		conf, _ := common.GetConfig(".env")
 		srv := new(MockService)
 		conntroller := NewController(server, conf, srv)
 		conntroller.RegisterRoutes()
