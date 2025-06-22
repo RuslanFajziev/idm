@@ -28,7 +28,7 @@ func TestInternalApiHealth(t *testing.T) {
 
 	t.Run("Check response /internal/health - Healthy", func(t *testing.T) {
 		server := web.NewServer()
-		conf, _ := common.GetConfig(".env")
+		conf, _ := common.GetConfig(".env_info")
 		srv := new(MockService)
 		controller := NewController(server, conf, srv)
 		controller.RegisterRoutes()
@@ -50,7 +50,7 @@ func TestInternalApiHealth(t *testing.T) {
 
 	t.Run("Check response /internal/health - Unhealthy", func(t *testing.T) {
 		server := web.NewServer()
-		conf, _ := common.GetConfig(".env")
+		conf, _ := common.GetConfig(".env_info")
 		srv := new(MockService)
 		controller := NewController(server, conf, srv)
 		controller.RegisterRoutes()
@@ -76,7 +76,7 @@ func TestInternalApiInfo(t *testing.T) {
 
 	t.Run("Check response /internal/info", func(t *testing.T) {
 		server := web.NewServer()
-		conf, _ := common.GetConfig(".env")
+		conf, _ := common.GetConfig(".env_info")
 		srv := new(MockService)
 		conntroller := NewController(server, conf, srv)
 		conntroller.RegisterRoutes()
