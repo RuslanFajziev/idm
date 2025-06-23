@@ -37,3 +37,12 @@ func ConnectDbWithCfg(cfg common.Config) (*sqlx.DB, error) {
 	db.SetConnMaxIdleTime(10 * time.Minute)
 	return db, nil
 }
+
+func CheckDbConnection(cfg common.Config) bool {
+	db, err := sqlx.Connect(cfg.DbDriverName, cfg.Dsn)
+	if err != nil {
+		return false
+	}
+	db.Close()
+	return true
+}
