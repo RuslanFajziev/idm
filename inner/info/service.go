@@ -7,6 +7,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func CheckDbConnection(cfg common.Config) bool {
+type Service struct {
+}
+
+func (serv *Service) CheckDbConnection(cfg common.Config) bool {
 	return database.CheckDbConnection(cfg)
 }
