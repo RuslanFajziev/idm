@@ -32,6 +32,13 @@ func NewService(repo Repo, validator Validator) *Service {
 }
 
 func (serv *Service) Save(req Request) (id int64, err error) {
+	// валидируем запрос
+	err = serv.valid.Validate(req)
+	if err != nil {
+		// возвращаем кастомную ошибку в случае, если запрос не прошёл валидацию (про кастомные ошибки - дальше)
+		return 0, common.RequestValidationError{Message: err.Error()}
+	}
+
 	isExists, err := serv.repo.FindByName(req.Name)
 	if err != nil {
 		return 0, common.DbOperationError{Message: fmt.Errorf("error finding employee by name: %s, %w", req.Name, err).Error()}

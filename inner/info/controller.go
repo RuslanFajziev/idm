@@ -4,7 +4,7 @@ import (
 	"idm/inner/common"
 	"idm/inner/web"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 )
 
 type Controller struct {
@@ -38,23 +38,24 @@ func (c *Controller) RegisterRoutes() {
 }
 
 // GetInfo получение информации о приложении
-func (c *Controller) GetInfo(ctx *fiber.Ctx) {
+func (c *Controller) GetInfo(ctx *fiber.Ctx) error {
 	var err = ctx.Status(fiber.StatusOK).JSON(&InfoResponse{
 		Name:    c.cfg.AppName,
 		Version: c.cfg.AppVersion,
 	})
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning info")
-		return
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning info")
 	}
+
+	return nil
 }
 
 // GetHealth проверка работоспособности приложения
-func (c *Controller) GetHealth(ctx *fiber.Ctx) {
+func (c *Controller) GetHealth(ctx *fiber.Ctx) error {
 	result := c.connectionService.CheckDbConnection(c.cfg)
 	if result {
-		ctx.Status(fiber.StatusOK).SendString("Healthy")
+		return ctx.Status(fiber.StatusOK).SendString("Healthy")
 	} else {
-		ctx.Status(fiber.StatusInternalServerError).SendString("Unhealthy")
+		return ctx.Status(fiber.StatusInternalServerError).SendString("Unhealthy")
 	}
 }

@@ -37,7 +37,7 @@ func NewService(repo Repo, validator Validator) *Service {
 }
 
 func (serv *Service) SaveTx(req Request) (id int64, err error) {
-	// валидируем запрос (про валидатор расскажу дальше)
+	// валидируем запрос
 	err = serv.valid.Validate(req)
 	if err != nil {
 		// возвращаем кастомную ошибку в случае, если запрос не прошёл валидацию (про кастомные ошибки - дальше)

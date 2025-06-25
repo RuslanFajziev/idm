@@ -77,6 +77,7 @@ func TestSave(t *testing.T) {
 		srv := NewService(repo, repo)
 		var id int64 = 5
 		entity := request.toEntity()
+		repo.On("Validate", mock.Anything).Return(nil)
 		repo.On("FindByName", entity.Name).Return(false, nil)
 		repo.On("Save", entity).Return(id, nil)
 		got, err := srv.Save(request)
@@ -91,6 +92,7 @@ func TestSave(t *testing.T) {
 		entity := request.toEntity()
 		var err = errors.New("database error")
 		var want = fmt.Errorf("error save role: %w", err)
+		repo.On("Validate", mock.Anything).Return(nil)
 		repo.On("FindByName", entity.Name).Return(false, nil)
 		repo.On("Save", entity).Return(id, err)
 		newId, got := srv.Save(request)

@@ -7,12 +7,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber"
+	"go.uber.org/zap"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Controller struct {
 	server     *web.Server
 	roleervice Srv
+	logger     *common.Logger
 }
 
 // интерфейс сервиса employee.Service
@@ -25,10 +28,11 @@ type Srv interface {
 	DeleteByIds(ids []int64) error
 }
 
-func NewController(server *web.Server, roleervice Srv) *Controller {
+func NewController(server *web.Server, roleervice Srv, logger *common.Logger) *Controller {
 	return &Controller{
 		server:     server,
 		roleervice: roleervice,
+		logger:     logger,
 	}
 }
 
@@ -45,14 +49,17 @@ func (contr *Controller) RegisterRoutes() {
 }
 
 // функция-хендлер, которая будет вызываться при POST запросе по маршруту "/api/v1/roles"
-func (contr *Controller) CreateRole(ctx *fiber.Ctx) {
+func (contr *Controller) CreateRole(ctx *fiber.Ctx) error {
 
 	// анмаршалим JSON body запроса в структуру Request
 	var req Request
 	if err := ctx.BodyParser(&req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
-		return
+		contr.logger.Error(err.Error(), zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
 	}
+
+	// логируем тело запроса
+	contr.logger.Debug("create role: received request", zap.Any("request", req))
 
 	// вызываем метод Save сервиса role.Service
 	var newId, err = contr.roleervice.Save(req)
@@ -62,62 +69,66 @@ func (contr *Controller) CreateRole(ctx *fiber.Ctx) {
 		// если сервис возвращает ошибку RequestValidationError или AlreadyExistsError,
 		// то мы возвращаем ответ с кодом 400 (BadRequest)
 		case errors.As(err, &common.RequestValidationError{}) || errors.As(err, &common.AlreadyExistsError{}):
-			_ = common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
+			contr.logger.Error("create role", zap.Error(err))
+			return common.ErrResponse(ctx, fiber.StatusBadRequest, err.Error())
 
 		// если сервис возвращает другую ошибку, то мы возвращаем ответ с кодом 500 (InternalServerError)
 		default:
-			_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
+			contr.logger.Error("create role", zap.Error(err))
+			return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 		}
-		return
 	}
 
 	// функция OkResponse() формирует и направляет ответ в случае успеха
 	if err = common.OkResponse(ctx, newId); err != nil {
-
 		// функция ErrorResponse() формирует и направляет ответ в случае ошибки
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning created role id")
-		return
+		contr.logger.Error("error returning created role id", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning created role id")
 	}
+
+	return nil
 }
 
-func (contr *Controller) FindRoleById(ctx *fiber.Ctx) {
+func (contr *Controller) FindRoleById(ctx *fiber.Ctx) error {
 	var idStr string
 	if idStr = ctx.Params("id"); idStr == "" {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
-		return
+		contr.logger.Error("error returning created role id")
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
 	}
 
 	num, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
-		return
+		contr.logger.Error("error converted id tot int64", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
 	}
 
 	foundResponse, err := contr.roleervice.FindById(num)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		contr.logger.Error(err.Error())
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	if err = common.OkResponse(ctx, foundResponse); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning found role")
-		return
+		contr.logger.Error("error returning found role", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning found role")
 	}
+
+	return nil
 }
 
-func (contr *Controller) FindRoleByIds(ctx *fiber.Ctx) {
+func (contr *Controller) FindRoleByIds(ctx *fiber.Ctx) error {
 	var req struct {
 		IDs string `query:"ids"`
 	}
 
 	if err := ctx.QueryParser(&req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
-		return
+		contr.logger.Error("invalid query parameters", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
 	}
 
 	if req.IDs == "" {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
-		return
+		contr.logger.Error("ids parameter is required")
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
 	}
 
 	idStrings := strings.Split(req.IDs, ",")
@@ -126,75 +137,82 @@ func (contr *Controller) FindRoleByIds(ctx *fiber.Ctx) {
 	for _, idStr := range idStrings {
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
-			return
+			contr.logger.Error("invalid id format: "+idStr, zap.Error(err))
+			return common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
 		}
 		ids = append(ids, id)
 	}
 
 	var foundResponses, err = contr.roleervice.FindByIds(ids)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		contr.logger.Error(err.Error())
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	if err = common.OkResponse(ctx, foundResponses); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning found roles")
-		return
+		contr.logger.Error("error returning found roles", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning found roles")
 	}
+
+	return nil
 }
 
-func (contr *Controller) GetAllRole(ctx *fiber.Ctx) {
+func (contr *Controller) GetAllRole(ctx *fiber.Ctx) error {
 	var foundResponses, err = contr.roleervice.GetAll()
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		contr.logger.Error(err.Error())
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	if err = common.OkResponse(ctx, foundResponses); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning all roles")
-		return
+		contr.logger.Error("error returning all roles", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning all roles")
 	}
+
+	return nil
 }
 
-func (contr *Controller) DeleteRoleById(ctx *fiber.Ctx) {
+func (contr *Controller) DeleteRoleById(ctx *fiber.Ctx) error {
 	var idStr string
 	if idStr = ctx.Params("id"); idStr == "" {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
-		return
+		contr.logger.Error("error retrieving id")
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "error retrieving id")
 	}
 
 	num, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
-		return
+		contr.logger.Error("error converted id tot int64", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error converted id tot int64")
 	}
 
 	err = contr.roleervice.DeleteById(num)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		contr.logger.Error(err.Error())
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
+
 	}
 
 	if err = common.ResponseWithoutData(ctx); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete role")
-		return
+		contr.logger.Error("error returning result delete role", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete role")
 	}
+
+	return nil
 }
 
-func (contr *Controller) DeleteRoleByIds(ctx *fiber.Ctx) {
+func (contr *Controller) DeleteRoleByIds(ctx *fiber.Ctx) error {
 	var req struct {
 		IDs string `query:"ids"`
 	}
 
 	if err := ctx.QueryParser(&req); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
-		return
+		contr.logger.Error("invalid query parameters", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid query parameters")
 	}
 
 	if req.IDs == "" {
-		_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
-		return
+		contr.logger.Error("ids parameter is required")
+		return common.ErrResponse(ctx, fiber.StatusBadRequest, "ids parameter is required")
 	}
 
 	idStrings := strings.Split(req.IDs, ",")
@@ -203,20 +221,23 @@ func (contr *Controller) DeleteRoleByIds(ctx *fiber.Ctx) {
 	for _, idStr := range idStrings {
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			_ = common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
-			return
+			contr.logger.Error("invalid id format: "+idStr, zap.Error(err))
+			return common.ErrResponse(ctx, fiber.StatusBadRequest, "invalid id format: "+idStr)
+
 		}
 		ids = append(ids, id)
 	}
 
 	var err = contr.roleervice.DeleteByIds(ids)
 	if err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
-		return
+		contr.logger.Error(err.Error())
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	if err = common.ResponseWithoutData(ctx); err != nil {
-		_ = common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete roles")
-		return
+		contr.logger.Error("error returning result delete roles", zap.Error(err))
+		return common.ErrResponse(ctx, fiber.StatusInternalServerError, "error returning result delete roles")
 	}
+
+	return nil
 }
