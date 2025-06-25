@@ -2,42 +2,61 @@ package main
 
 import (
 	"fmt"
+	"idm/inner/common"
 	"idm/inner/database"
-	"time"
+	"idm/inner/employee"
+	"idm/inner/info"
+	"idm/inner/role"
+	"idm/inner/validator"
+	"idm/inner/web"
+
+	"github.com/jmoiron/sqlx"
 )
 
-type DataMigration struct {
-	Id      int64     `db:"id"`
-	Version int64     `db:"version_id"`
-	Applied bool      `db:"is_applied"`
-	Create  time.Time `db:"tstamp"`
+func main() {
+	cfg, err := common.GetConfig(".env")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// создаём подключение к базе данных
+	database, err := database.ConnectDbWithCfg(cfg)
+	if err != nil {
+		panic(err.Error())
+	}
+	// закрываем соединение с базой данных после выхода из функции main
+	defer func() {
+		if err := database.Close(); err != nil {
+			fmt.Printf("error closing db: %v", err)
+		}
+	}()
+	var server = build(database, cfg)
+	err = server.App.Listen(":8080")
+	if err != nil {
+		panic(fmt.Sprintf("http server error: %s", err))
+	}
 }
 
-func main() {
-	db, err := database.ConnectDb(".env")
-	if err != nil {
-		panic(fmt.Errorf("failed open connect Db: %v", err))
-	}
+// buil функция, конструирующая наш веб-сервер
+func build(database *sqlx.DB, cfg common.Config) *web.Server {
+	// создаём веб-сервер
+	var server = web.NewServer()
+	// создаём репозиторий
+	var employeeRepo = employee.NewEmployeeRepository(database)
+	var roleRepo = role.NewRoleRepository(database)
+	// создаём валидатор
+	var vld = validator.NewRequestValidator()
+	// создаём сервис
+	var employeeService = employee.NewService(employeeRepo, vld)
+	var roleService = role.NewService(roleRepo, vld)
+	var connectionService = &info.Service{}
+	// создаём контроллер
+	var employeeController = employee.NewController(server, employeeService)
+	var roleController = role.NewController(server, roleService)
+	var infoController = info.NewController(server, cfg, connectionService)
+	employeeController.RegisterRoutes()
+	roleController.RegisterRoutes()
+	infoController.RegisterRoutes()
 
-	defer db.Close()
-
-	fmt.Println("**************************")
-	fmt.Println("Check connetion to DB: Started")
-	fmt.Println("**************************")
-
-	var dataMigration DataMigration
-
-	err = db.Get(&dataMigration, "SELECT * FROM goose_db_version WHERE version_id = $1", 20250603224245)
-
-	if err != nil {
-		panic(fmt.Errorf("failed to query database: %v", err))
-	}
-
-	fmt.Printf("version:%v applied:%v\n", dataMigration.Version, dataMigration.Applied)
-
-	if dataMigration.Applied {
-		fmt.Println("**************************")
-		fmt.Println("Check connetion to DB: Passed")
-		fmt.Println("**************************")
-	}
+	return server
 }
