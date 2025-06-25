@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap/zaptest"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -53,6 +55,11 @@ func (srv *MockService) DeleteByIds(ids []int64) error {
 	return args.Error(0)
 }
 
+func GetLogger(t *testing.T) *common.Logger {
+	loggerTest := zaptest.NewLogger(t)
+	return &common.Logger{loggerTest}
+}
+
 func TestCreateEmployee(t *testing.T) {
 	var a = assert.New(t)
 
@@ -61,7 +68,7 @@ func TestCreateEmployee(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
@@ -92,7 +99,7 @@ func TestCreateEmployee(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
@@ -123,7 +130,7 @@ func TestCreateEmployee(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 
 		var body = strings.NewReader("{\"name\": \"john doe\"}")
@@ -160,7 +167,7 @@ func TestContrlFindById(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
@@ -195,7 +202,7 @@ func TestContrlFindById(t *testing.T) {
 	t.Run("should exception FindById", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/id/123", nil)
@@ -229,7 +236,7 @@ func TestContrlGetAll(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees", nil)
@@ -270,7 +277,7 @@ func TestContrlGetAll(t *testing.T) {
 	t.Run("should exception GetAll", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees", nil)
@@ -304,7 +311,7 @@ func TestContrlDeleteById(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/id/123", nil)
@@ -331,7 +338,7 @@ func TestContrlDeleteById(t *testing.T) {
 		// Готовим тестовое окружение
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		// Готовим тестовое окружение
 		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/id/123", nil)
@@ -365,7 +372,7 @@ func TestContrlFindByIds(t *testing.T) {
 	t.Run("should return employees by ids", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
 		var entity1 = Response{
@@ -402,7 +409,7 @@ func TestContrlFindByIds(t *testing.T) {
 	t.Run("should exception by ids", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		var req = httptest.NewRequest(fiber.MethodGet, "/api/v1/employees/ids?ids=1,2,3", nil)
 
@@ -433,7 +440,7 @@ func TestContrlDeleteByIds(t *testing.T) {
 	t.Run("should DeleteByIds", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
 		svc.On("DeleteByIds", []int64{1, 2, 3}).Return(nil)
@@ -455,7 +462,7 @@ func TestContrlDeleteByIds(t *testing.T) {
 	t.Run("should exception DeleteByIds", func(t *testing.T) {
 		server := web.NewServer()
 		var svc = new(MockService)
-		var controller = NewController(server, svc)
+		var controller = NewController(server, svc, GetLogger(t))
 		controller.RegisterRoutes()
 		var req = httptest.NewRequest(fiber.MethodDelete, "/api/v1/employees/ids?ids=1,2,3", nil)
 
