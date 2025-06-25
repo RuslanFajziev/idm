@@ -57,7 +57,7 @@ func (srv *MockService) DeleteByIds(ids []int64) error {
 
 func GetLogger(t *testing.T) *common.Logger {
 	loggerTest := zaptest.NewLogger(t)
-	return &common.Logger{loggerTest}
+	return &common.Logger{Logger: loggerTest}
 }
 
 func TestCreateEmployee(t *testing.T) {
